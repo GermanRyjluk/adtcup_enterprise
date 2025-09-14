@@ -9,14 +9,24 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "La tua posizione è necessaria per verificare che ti trovi nel punto di partenza corretto e per monitorare i tuoi progressi durante l'evento. Non verrà condivisa per altri scopi.",
+        "NSCameraUsageDescription": "L'accesso alla fotocamera è necessario per scansionare i QR code degli indovinelli e avanzare nel gioco.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.ryyuuk.adtcupteams"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.ryyuuk.adtcupteams"
     },
     "web": {
       "bundler": "metro",
@@ -34,10 +44,17 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-barcode-scanner"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3c947803-a729-4be9-a9c5-c6f31281d839"
+      }
     }
   }
 }

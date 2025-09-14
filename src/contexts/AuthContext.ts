@@ -12,7 +12,7 @@ export interface AuthContextType {
    * È `null` se l'utente non è loggato.
    */
   user: User | null;
-
+  a;
   /**
    * Un flag booleano che indica se l'utente ha completato il suo profilo
    * creando il documento corrispondente su Firestore.
@@ -20,10 +20,22 @@ export interface AuthContextType {
   isProfileComplete: boolean;
 
   /**
+   * Il numero di team al quale appartiene l'utente
+   */
+  teamId: number | 0;
+
+  /**
+   * ID dell'evento attuale al quale sta partecipando l'utente
+   */
+  currentEventId: string | null;
+
+  refreshAuthState: () => Promise<void>;
+
+  /**
    * Funzione per aggiornare lo stato globale e indicare che il gioco è iniziato.
    * Verrà chiamata dalla schermata PreGame.
    */
-  startGame: () => void;
+  startGame: (eventId: string) => void;
 
   /**
    * Funzione per aggiornare lo stato globale dopo che il profilo è stato

@@ -23,10 +23,11 @@ import { db } from "../config/firebaseConfig";
  * @returns Una funzione `unsubscribe` per interrompere l'ascolto.
  */
 export const listenToTeamData = (
+  eventId: string,
   teamId: string,
   callback: (data: DocumentData | null) => void
 ): Unsubscribe => {
-  const teamDocRef = doc(db, "teams", teamId);
+  const teamDocRef = doc(db, "events", eventId, "teams", teamId);
   return onSnapshot(
     teamDocRef,
     (docSnap) => {
@@ -47,7 +48,8 @@ export const listenToTeamData = (
  * @returns Una funzione `unsubscribe` per interrompere l'ascolto.
  */
 export const listenToTeamMembers = (
-  teamId: string,
+  eventId: string,
+  teamId: number,
   callback: (members: DocumentData[]) => void
 ): Unsubscribe => {
   const usersRef = collection(db, "users");
@@ -58,7 +60,7 @@ export const listenToTeamMembers = (
     (querySnapshot) => {
       const members: DocumentData[] = [];
       querySnapshot.forEach((doc) => {
-        members.push(doc.data());
+        members.push({ id: doc.id, ...doc.data() });
       });
       callback(members);
     },

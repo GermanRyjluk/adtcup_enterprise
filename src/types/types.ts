@@ -33,6 +33,7 @@ export type MainStackParamList = {
   GameTabs: { screen: keyof GameTabParamList };
   ScannerModal: undefined;
   Clues: { riddleId: string };
+  Profile: undefined;
 };
 
 // --- Tipi per le Props delle Schermate ---

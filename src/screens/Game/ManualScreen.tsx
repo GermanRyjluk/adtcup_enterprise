@@ -7,6 +7,7 @@ import { GameTabScreenProps } from "../../navigation/types";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 import { useBounceIn } from "../../hooks/animationHooks";
+import { GameHeader } from "@/src/components/GameHeader";
 
 type ManualScreenProps = GameTabScreenProps<"ManualTab">;
 
@@ -84,9 +85,7 @@ const ManualCardItem: React.FC<{ item: ManualCard; index: number }> = ({
 const ManualScreen: React.FC<ManualScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.standardScreenContainer}>
-      <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Manuale di Gioco</Text>
-      </View>
+      <GameHeader title="Manuale di Gioco" />
       <FlatList
         data={manualCards}
         keyExtractor={(item) => item.id}

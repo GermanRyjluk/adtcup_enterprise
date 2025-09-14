@@ -1,69 +1,91 @@
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  writeBatch,
+  serverTimestamp,
+  increment,
+} from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 
 /**
- * @file scannerService.ts
- * Contiene la logica per la verifica dei QR code e l'aggiornamento dello stato di gioco.
- */
-
-/**
- * Verifica se il QR code scansionato è la risposta corretta per l'indovinello attuale
- * e, in caso affermativo, fa avanzare il giocatore al prossimo indovinello.
+ * Verifica un QR code, fa avanzare il team e registra il tempo in classifica.
  *
- * @param uid L'ID dell'utente che ha scansionato il codice.
+ * @param teamId L'ID del team che ha scansionato (dal AuthContext).
  * @param eventId L'ID dell'evento corrente.
- * @param riddleIndex L'indice dell'indovinello a cui l'utente sta rispondendo.
- * @param scannedData Il contenuto del QR code scansionato.
+ * @param scannedQuizId L'ID del quiz letto dal QR code.
  * @returns Una Promise che si risolve con un oggetto { success: boolean, message: string }.
  */
 export const verifyQRCode = async (
-  uid: string,
+  teamId: string,
   eventId: string,
-  riddleIndex: number,
-  scannedData: string
+  scannedQuizId: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // 1. Recupera la risposta corretta per l'indovinello attuale dal database.
-    const riddleRef = doc(
+    // --- 1. Recupera lo stato attuale e il nome del team ---
+    const teamDocRef = doc(db, "events", eventId, "teams", teamId);
+    const teamDocSnap = await getDoc(teamDocRef);
+    if (!teamDocSnap.exists()) {
+      return { success: false, message: "Dati del team non trovati." };
+    }
+    const { currentRiddleIndex, name: teamName } = teamDocSnap.data();
+
+    // --- 2. Verifica se il QR code è quello corretto ---
+    const currentQuizDocRef = doc(
       db,
       "events",
       eventId,
-      "riddles",
-      String(riddleIndex)
+      "quiz",
+      currentRiddleIndex
     );
-    const riddleSnap = await getDoc(riddleRef);
-
-    if (!riddleSnap.exists()) {
+    const currentQuizDocSnap = await getDoc(currentQuizDocRef);
+    if (!currentQuizDocSnap.exists()) {
       return {
         success: false,
-        message: "Indovinello non trovato. Contatta l'assistenza.",
+        message: "Errore interno: quiz attuale non trovato.",
+      };
+    }
+    const { nextQuizId } = currentQuizDocSnap.data();
+
+    if (scannedQuizId !== nextQuizId) {
+      return {
+        success: false,
+        message: "QR Code non corretto. Continua a cercare!",
       };
     }
 
-    const correctAnswer = riddleSnap.data().solution; // Assumiamo che la risposta sia nel campo 'solution'
+    // --- 3. Prepara e esegui il batch di scrittura ---
+    const batch = writeBatch(db);
+    const scanTime = serverTimestamp();
 
-    // 2. Confronta la risposta scansionata con quella corretta.
-    if (scannedData.trim() === correctAnswer) {
-      // 3. Se la risposta è corretta, aggiorna lo stato del giocatore (incrementa l'indice).
-      const userRef = doc(db, "users", uid);
-      await updateDoc(userRef, {
-        riddleIndex: increment(1),
-      });
+    // Aggiorna il team
+    batch.update(teamDocRef, {
+      currentRiddleIndex: scannedQuizId,
+      currentRiddleNumber: increment(1),
+      lastScanTime: scanTime,
+    });
 
-      // Qui si potrebbe anche aggiungere la logica per incrementare il punteggio del team.
+    // Registra in classifica
+    const leaderboardDocRef = doc(
+      db,
+      "events",
+      eventId,
+      "quiz",
+      currentRiddleIndex,
+      "leaderboard",
+      teamId
+    );
+    batch.set(leaderboardDocRef, {
+      teamId,
+      teamName,
+      scanTime,
+    });
 
-      return {
-        success: true,
-        message: "Risposta corretta! Preparati per il prossimo indovinello.",
-      };
-    } else {
-      // 4. Se la risposta è sbagliata.
-      return {
-        success: false,
-        message:
-          "QR Code non valido per questo indovinello. Continua a cercare!",
-      };
-    }
+    await batch.commit();
+
+    return {
+      success: true,
+      message: "Risposta corretta! Preparati per il prossimo indovinello.",
+    };
   } catch (error) {
     console.error("Errore durante la verifica del QR Code:", error);
     return {

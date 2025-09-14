@@ -18,6 +18,7 @@ export const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     padding: theme.spacing.lg,
+    backgroundColor: theme.colors.backgroundEnd,
   },
   authContent: {
     width: "100%",
@@ -25,7 +26,7 @@ export const styles = StyleSheet.create({
   },
   standardScreenContainer: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
+    // paddingHorizontal: theme.spacing.md,
   },
   header: {
     flexDirection: "row",
@@ -60,7 +61,7 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.bold,
     fontSize: 22,
     color: theme.colors.textPrimary,
-    paddingHorizontal: theme.spacing.md,
+    // paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.md,
   },
   bodyText: {
@@ -126,7 +127,6 @@ export const styles = StyleSheet.create({
   },
   textButton: {
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
     textDecorationLine: "underline",
     fontSize: 14,
   },
@@ -140,11 +140,16 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
   },
+  primaryButtonDisabled: {
+    backgroundColor: theme.colors.disabled,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
   footerButton: {
     width: "90%",
+    paddingVertical: theme.spacing.sm,
   },
   primaryButtonGradient: {
-    // Aumentiamo il padding verticale per rendere il bottone più alto
     paddingVertical: theme.spacing.md + 4,
     paddingHorizontal: theme.spacing.xl,
     borderRadius: theme.radius.full,
@@ -207,6 +212,18 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: "center",
   },
+  modalCloseButton: {
+    marginTop: theme.spacing.lg,
+    backgroundColor: theme.colors.accentPrimary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radius.full,
+  },
+  modalCloseButtonText: {
+    color: "#000",
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 16,
+  },
 
   // --- Navigazione ---
   tabBar: {
@@ -236,6 +253,20 @@ export const styles = StyleSheet.create({
     shadowRadius: 10,
   },
 
+  // --- Stili per la schermata Profilo ---
+  deleteButton: {
+    marginTop: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButtonText: {
+    color: theme.colors.error, // Testo rosso
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 16,
+  },
+
   // --- Schermata Dettagli Evento ---
   detailsHeaderImage: {
     width: "100%",
@@ -248,14 +279,14 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.md,
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
+    paddingTop: Platform.OS === "ios" ? 20 : 20,
     position: "absolute",
     width: "100%",
-    zIndex: 2, // Assicura che i pulsanti siano sopra l'immagine
+    zIndex: 2,
   },
   detailsHeaderButton: {
     backgroundColor: "rgba(0,0,0,0.4)",
-    padding: theme.spacing.sm,
+    padding: theme.spacing.md,
     borderRadius: theme.radius.full,
   },
   detailsContentCard: {
@@ -292,6 +323,14 @@ export const styles = StyleSheet.create({
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
   },
+  detailsInfoSubtitle: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
   detailsMap: {
     width: "100%",
     height: 150,
@@ -305,7 +344,7 @@ export const styles = StyleSheet.create({
   },
   floatingFooterGradient: {
     padding: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -316,8 +355,26 @@ export const styles = StyleSheet.create({
     top: 0,
     width: "100%",
   },
-  footerButton: {
-    paddingVertical: theme.spacing.sm,
+  distanceIndicatorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    marginTop: theme.spacing.md,
+    width: "90%",
+    alignSelf: "center",
+  },
+  distanceIndicatorReady: {
+    backgroundColor: "rgba(46, 204, 113, 0.2)", // Sfondo verde semi-trasparente
+  },
+  distanceIndicatorNotReady: {
+    backgroundColor: "rgba(231, 76, 60, 0.2)", // Sfondo rosso semi-trasparente
+  },
+  distanceIndicatorText: {
+    fontFamily: theme.fonts.primary.medium,
+    fontSize: 16,
+    marginLeft: theme.spacing.sm,
   },
 
   // --- Stili Aggiornati e Corretti per CountdownScreen ---
@@ -427,15 +484,14 @@ export const styles = StyleSheet.create({
   },
   riddleImage: {
     width: "100%",
-    height: 200,
     borderRadius: theme.radius.sm,
-    marginBottom: theme.spacing.md,
+    alignSelf: "center",
   },
   riddleText: {
     fontFamily: theme.fonts.secondary.bold,
-    fontSize: 24,
+    fontSize: 20,
     color: theme.colors.textPrimary,
-    lineHeight: 36,
+    lineHeight: 28,
     textAlign: "center",
   },
   clueCard: {
@@ -528,18 +584,19 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontFamily: theme.fonts.primary.bold,
     fontSize: 18,
-    width: 30,
+    width: 25,
     textAlign: "center",
   },
   leaderboardIconContainer: {
     width: 24,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.sm,
     alignItems: "center",
   },
   leaderboardTeamName: {
     flex: 1,
     color: theme.colors.textPrimary,
     fontFamily: theme.fonts.primary.medium,
+    marginLeft: theme.spacing.sm,
     fontSize: 16,
   },
   leaderboardScore: {
@@ -580,29 +637,51 @@ export const styles = StyleSheet.create({
   // --- Schermata Scanner Modale ---
   scannerContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.8)",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
+  },
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   scannerFocusBox: {
     width: 250,
     height: 250,
     borderWidth: 2,
     borderColor: theme.colors.accentPrimary,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
-  scannerBar: {
-    width: "100%",
-    height: 3,
+    // borderRadius: theme.radius.lg,
     backgroundColor: "transparent",
   },
-  scannerText: {
-    color: theme.colors.textPrimary,
+  scannerMask: {
+    flex: 1,
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  scannerInfoText: {
+    color: "white",
     fontSize: 18,
+    marginTop: 20,
     fontFamily: theme.fonts.primary.medium,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+  },
+  scannerPermissionText: {
+    color: "white",
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    fontFamily: theme.fonts.primary.regular,
+  },
+  scannerCloseButton: {
+    position: "absolute",
+    bottom: 50,
+  },
+  scannerCloseButtonText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    fontFamily: theme.fonts.primary.regular,
   },
   // --- Schermata Indizi (Clues) ---
   cluesContainer: {

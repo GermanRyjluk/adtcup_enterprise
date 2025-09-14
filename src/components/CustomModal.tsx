@@ -5,6 +5,7 @@ import { Feather as Icon } from "@expo/vector-icons";
 // --- Importazioni Locali ---
 import { theme } from "../theme/theme";
 import { styles } from "../styles/styles";
+import { PrimaryButton } from "./PrimaryButton";
 
 /**
  * @interface CustomModalProps
@@ -15,6 +16,8 @@ interface CustomModalProps {
   title: string;
   message: string;
   type: "success" | "error" | "info";
+  persistent?: boolean;
+  onClose: () => void;
 }
 
 /**
@@ -27,6 +30,8 @@ export const CustomModal: React.FC<CustomModalProps> = ({
   title,
   message,
   type,
+  persistent,
+  onClose,
 }) => {
   // Stato per controllare se il componente deve essere renderizzato.
   // Serve per permettere all'animazione di uscita di completarsi prima di smontare il componente.
@@ -49,7 +54,6 @@ export const CustomModal: React.FC<CustomModalProps> = ({
         friction: 6,
         useNativeDriver: true,
       }).start(({ finished }) => {
-        // CORREZIONE: Usiamo il callback dell'animazione.
         // Solo quando l'animazione è finita, smontiamo il componente.
         if (finished) {
           setIsRendered(false);
@@ -88,6 +92,14 @@ export const CustomModal: React.FC<CustomModalProps> = ({
         <Icon name={iconName} size={48} color={iconColor} />
         <Text style={styles.modalTitle}>{title}</Text>
         <Text style={styles.modalMessage}>{message}</Text>
+        {/* Mostra il bottone solo se il modal è persistente */}
+        {persistent && (
+          <PrimaryButton
+            title="Chiudi"
+            onPress={onClose}
+            style={{ marginTop: theme.spacing.lg, width: "100%" }}
+          />
+        )}
       </Animated.View>
     </View>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import {
   createStackNavigator,
-  CardStyleInterpolators,
+  StackNavigationProp,
 } from "@react-navigation/stack";
 import {
   createBottomTabNavigator,
@@ -10,6 +10,7 @@ import {
 import { View, TouchableOpacity } from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 
 // --- Importazione Tipi di Navigazione ---
 import {
@@ -54,7 +55,6 @@ export const AuthStack = () => (
     initialRouteName="Login"
     screenOptions={{
       headerShown: false,
-      cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
       cardStyle: { backgroundColor: "transparent" },
     }}
   >
@@ -72,7 +72,6 @@ export const PreGameStack = () => (
   <PreGameStackNav.Navigator
     screenOptions={{
       headerShown: false,
-      cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
       cardStyle: { backgroundColor: "transparent" },
     }}
   >
@@ -84,7 +83,9 @@ export const PreGameStack = () => (
     <PreGameStackNav.Screen
       name="Profile"
       component={ProfileScreen}
-      options={{ presentation: "modal" }}
+      options={{
+        presentation: "modal",
+      }}
     />
   </PreGameStackNav.Navigator>
 );
@@ -107,6 +108,7 @@ const TabBarIcon: React.FC<{
     TeamTab: "users",
     LeaderboardTab: "bar-chart-2",
     ManualTab: "book-open",
+    Scanner: "grid",
   };
 
   const iconName = icons[routeName] || "alert-circle";
@@ -114,19 +116,22 @@ const TabBarIcon: React.FC<{
   return <Icon name={iconName} size={size} color={color} />;
 };
 
-const CustomTabBarButton: React.FC<BottomTabBarButtonProps> = ({ onPress }) => (
-  <TouchableOpacity
-    style={{ top: -40, justifyContent: "center", alignItems: "center" }}
-    onPress={onPress}
-  >
-    <LinearGradient
-      colors={[theme.colors.accentPrimary, "#FFB300"]}
-      style={styles.scannerTabButton}
+const CustomTabBarButton: React.FC<BottomTabBarButtonProps> = ({ onPress }) => {
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  return (
+    <TouchableOpacity
+      style={{ top: -40, justifyContent: "center", alignItems: "center" }}
+      onPress={onPress}
     >
-      <Icon name="grid" size={40} color="#000" />
-    </LinearGradient>
-  </TouchableOpacity>
-);
+      <LinearGradient
+        colors={[theme.colors.accentPrimary, "#FFB300"]}
+        style={styles.scannerTabButton}
+      >
+        <Icon name="grid" size={40} color="#000" />
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
 
 // --- Navigatore a Schede ---
 const GameTabs = () => (
@@ -151,7 +156,7 @@ const GameTabs = () => (
     <Tab.Screen name="TeamTab" component={TeamScreen} />
     <Tab.Screen
       name="Scanner"
-      component={() => <View />} // Componente vuoto
+      component={ScannerModal}
       options={{
         tabBarButton: (props) => <CustomTabBarButton {...props} />,
       }}
@@ -176,16 +181,16 @@ export const MainStack = () => (
       component={ScannerModal}
       options={{
         presentation: "modal",
-        cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
         cardStyle: { backgroundColor: "transparent" },
       }}
     />
     <MainStackNav.Screen
-      name="Clues"
-      component={CluesScreen}
+      name="Profile"
+      component={ProfileScreen}
       options={{
-        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        presentation: "modal",
       }}
     />
+    <MainStackNav.Screen name="Clues" component={CluesScreen} />
   </MainStackNav.Navigator>
 );

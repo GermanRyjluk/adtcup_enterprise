@@ -6,6 +6,7 @@ import {
   Easing,
   StyleProp,
   ViewStyle,
+  ActivityIndicator, // Importa ActivityIndicator
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather as Icon } from "@expo/vector-icons";
@@ -21,7 +22,7 @@ import { AnimatedPressable } from "./AnimatedPressable";
  */
 interface PrimaryButtonProps {
   title: string;
-  subtitle?: string; // NUOVA PROP per il sottotitolo (es. countdown)
+  subtitle?: string; // PROP per il sottotitolo (es. countdown)
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
@@ -35,7 +36,7 @@ interface PrimaryButtonProps {
  */
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   title,
-  subtitle, // Nuova prop
+  subtitle,
   onPress,
   loading = false,
   disabled = false,
@@ -73,23 +74,30 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     transform: [{ scale: pulseAnim }],
   };
 
+  const isDisabled = loading || disabled;
+
   return (
     <AnimatedPressable
       onPress={onPress}
-      disabled={loading || disabled}
+      disabled={isDisabled}
       style={[
         styles.primaryButtonContainer,
-        (loading || disabled) && { opacity: 0.5 },
+        isDisabled && styles.primaryButtonDisabled, // Applica lo stile disabilitato
         animatedStyle,
         style,
       ]}
     >
       <LinearGradient
-        colors={[theme.colors.accentPrimary, "#FFB300"]}
+        // Usa un gradiente grigio se disabilitato
+        colors={
+          isDisabled
+            ? [theme.colors.disabled, theme.colors.disabled]
+            : [theme.colors.accentPrimary, "#FFB300"]
+        }
         style={styles.primaryButtonGradient}
       >
         {loading ? (
-          <Text style={styles.primaryButtonText}>Caricamento...</Text>
+          <ActivityIndicator color="#000" />
         ) : (
           <View style={styles.footerButtonContent}>
             {icon && (

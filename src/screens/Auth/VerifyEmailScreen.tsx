@@ -34,19 +34,14 @@ const VerifyEmailScreen: React.FC<VerifyEmailScreenProps> = ({
 
   // Funzione per controllare lo stato di verifica dell'email
   const checkVerificationStatus = useCallback(async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-
     setIsChecking(true);
     try {
-      // Ricarica lo stato dell'utente da Firebase per ottenere il valore più recente di emailVerified
-      await currentUser.reload();
+      // La nostra nuova funzione del contesto fa tutto il lavoro!
+      // Ricarica lo stato dell'utente e forza App.tsx a rivalutare quale schermata mostrare.
+      await authContext?.refreshAuthState();
 
-      // Controlla se l'email è stata verificata dopo il ricaricamento
-      if (currentUser.emailVerified) {
-        // Se l'email è verificata, procedi a completare il profilo
-      } else {
-        // Altrimenti, informa l'utente
+      // Controlliamo il risultato DOPO il refresh per dare un feedback all'utente se non ha ancora verificato
+      if (!auth.currentUser?.emailVerified) {
         modal?.showModal({
           type: "info",
           title: "Verifica in sospeso",
@@ -54,6 +49,8 @@ const VerifyEmailScreen: React.FC<VerifyEmailScreenProps> = ({
             "Non abbiamo ancora registrato la tua verifica. Controlla la tua casella di posta (anche lo spam) e clicca sul link.",
         });
       }
+      // Se l'email è verificata, non dobbiamo fare nient'altro.
+      // App.tsx si occuperà di mostrare la schermata giusta.
     } catch (error) {
       console.error("Errore durante la verifica dell'email:", error);
       modal?.showModal({
@@ -64,7 +61,7 @@ const VerifyEmailScreen: React.FC<VerifyEmailScreenProps> = ({
     } finally {
       setIsChecking(false);
     }
-  }, [navigation, modal]);
+  }, [authContext, modal]);
 
   // Funzione per rinviare l'email di verifica
   const handleResendEmail = useCallback(async () => {

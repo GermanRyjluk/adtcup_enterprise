@@ -8,6 +8,7 @@ export interface ModalOptions {
   title: string;
   message: string;
   type: "success" | "error" | "info";
+  persistent?: boolean;
 }
 
 /**
@@ -21,6 +22,7 @@ export interface ModalContextType {
    * @param options - Un oggetto contenente titolo, messaggio e tipo del modale.
    */
   showModal: (options: ModalOptions) => void;
+  hideModal: () => void;
 }
 
 /**

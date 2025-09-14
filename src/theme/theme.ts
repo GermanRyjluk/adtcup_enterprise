@@ -12,7 +12,8 @@ export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
  */
 export const theme = {
   colors: {
-    backgroundStart: "#191D3A",
+    // backgroundStart: "#191D3A",
+    backgroundStart: "#040037ff",
     backgroundEnd: "#040037ff",
     textPrimary: "#EAEAEA",
     textSecondary: "#B0B0B0",

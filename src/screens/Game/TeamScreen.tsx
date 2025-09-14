@@ -26,6 +26,7 @@ import { getUserProfile } from "../../api/userService";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 import { useFadeIn } from "../../hooks/animationHooks";
+import { GameHeader } from "@/src/components/GameHeader";
 
 type TeamScreenProps = GameTabScreenProps<"TeamTab">;
 
@@ -38,7 +39,7 @@ const TeamMemberItem: React.FC<{ item: DocumentData; index: number }> = ({
   return (
     <Animated.View style={[styles.teamMemberRow, fadeIn]}>
       <Image
-        source={{ uri: `https://i.pravatar.cc/150?u=${item.uid}` }}
+        source={{ uri: `https://i.pravatar.cc/300?u=${item.username}` }}
         style={styles.teamMemberAvatar}
       />
       <Text style={styles.teamMemberName}>{item.username}</Text>
@@ -51,50 +52,52 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
   const modal = useContext(ModalContext);
 
   const [loading, setLoading] = useState(true);
-  const [teamId, setTeamId] = useState<string | null>(null);
   const [teamData, setTeamData] = useState<DocumentData | null>(null);
   const [members, setMembers] = useState<DocumentData[]>([]);
   const [teamName, setTeamName] = useState("");
+  const [teamId, setTeamId] = useState<number | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
   const [isCaptain, setIsCaptain] = useState(false);
 
   // 1. Recupera il teamId dell'utente al primo caricamento
   useEffect(() => {
-    const fetchUserTeam = async () => {
-      if (authContext?.user) {
-        const profile = await getUserProfile(authContext.user.uid);
-        if (profile?.teamId) {
-          setTeamId(profile.teamId);
-          setIsCaptain(profile.uid === profile.teamCaptainUid); // Controlla se l'utente è il capitano
-        } else {
-          setLoading(false); // Nessun team, smetti di caricare
-        }
-      }
-    };
-    fetchUserTeam();
-  }, [authContext?.user]);
+    if (authContext?.teamId && authContext?.currentEventId) {
+      setTeamId(authContext.teamId);
+      setEventId(authContext.currentEventId);
+    } else {
+      setLoading(false); // Se mancano dati, smetti di caricare.
+    }
+  }, [authContext?.teamId, authContext?.currentEventId]);
 
   // 2. Imposta i listener quando il teamId è disponibile
   useEffect(() => {
-    if (!teamId) return;
-
+    if (!teamId || !eventId) return;
     // Listener per i dati del team
-    const unsubscribeTeam = listenToTeamData(teamId, (data) => {
-      setTeamData(data);
-      setTeamName(data?.name || "");
-      if (loading) setLoading(false);
-    });
+    const unsubscribeTeam = listenToTeamData(
+      eventId,
+      teamId.toString(),
+      (data) => {
+        setTeamData(data);
+        setTeamName(data?.name || "");
+        if (loading) setLoading(false);
+      }
+    );
 
     // Listener per i membri del team
-    const unsubscribeMembers = listenToTeamMembers(teamId, (memberData) => {
-      setMembers(memberData);
-    });
+    const unsubscribeMembers = listenToTeamMembers(
+      eventId,
+      teamId,
+      (memberData) => {
+        setMembers(memberData);
+      }
+    );
 
     // Funzione di cleanup
     return () => {
       unsubscribeTeam();
       unsubscribeMembers();
     };
-  }, [teamId]);
+  }, [teamId, eventId, authContext?.user]);
 
   const handleSaveTeamName = useCallback(async () => {
     if (!teamId || !isCaptain) return; // Solo il capitano può salvare
@@ -103,7 +106,7 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
     if (teamName.trim() === originalName) return; // Nessuna modifica
 
     try {
-      await updateTeamName(teamId, teamName);
+      await updateTeamName(teamId.toString(), teamName);
       modal?.showModal({
         type: "success",
         title: "Successo",
@@ -140,9 +143,7 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.standardScreenContainer}>
-      <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Il Mio Team</Text>
-      </View>
+      <GameHeader title="Il Mio Team" />
 
       <View style={styles.teamCard}>
         <TouchableOpacity style={styles.teamIconContainer}>
@@ -167,7 +168,10 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
       <Text
         style={[
           styles.sectionTitle,
-          { paddingHorizontal: 0, paddingBottom: theme.spacing.md },
+          {
+            paddingHorizontal: theme.spacing.md,
+            paddingBottom: theme.spacing.md,
+          },
         ]}
       >
         Membri
@@ -177,7 +181,7 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
         renderItem={({ item, index }) => (
           <TeamMemberItem item={item} index={index} />
         )}
-        keyExtractor={(item) => item.uid}
+        keyExtractor={(item) => item.id}
         scrollEnabled={false}
       />
     </ScrollView>

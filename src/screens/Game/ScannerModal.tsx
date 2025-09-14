@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
-import { View, Text, TouchableOpacity, Animated, Easing } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useState, useEffect, useContext } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 
 // --- Importazioni Locali ---
 import { AuthContext } from "../../contexts/AuthContext";
@@ -8,9 +8,9 @@ import { ModalContext } from "../../contexts/ModalContext";
 import { MainStackNavigationProps } from "../../navigation/types";
 import { verifyQRCode } from "../../api/scannerService";
 import { listenToGameState, GameState } from "../../api/gameService";
-import { styles } from "../../styles/styles";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { theme } from "../../theme/theme";
+import { styles } from "../../styles/styles";
 
 type ScannerModalProps = MainStackNavigationProps<"ScannerModal">;
 
@@ -18,33 +18,12 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
   const authContext = useContext(AuthContext);
   const modal = useContext(ModalContext);
 
-  const [scanning, setScanning] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
-
-  // Valore animato per la barra di scansione
-  const scanAnimation = useRef(new Animated.Value(0)).current;
-
-  // Avvia l'animazione della barra quando il componente viene montato
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanAnimation, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scanAnimation, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [scanAnimation]);
+  // Stato per i permessi della fotocamera
+  const [permission, requestPermission] = useCameraPermissions();
+  // Stato per sapere se un codice è già stato scansionato (per evitare scansioni multiple)
+  const [scanned, setScanned] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Ascolta lo stato di gioco per avere sempre i dati più aggiornati
   useEffect(() => {
@@ -53,19 +32,27 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
     return () => unsubscribe();
   }, [authContext?.user]);
 
-  const handleSimulateScan = async () => {
+  // Chiedi i permessi all'avvio del componente
+  useEffect(() => {
+    if (!permission?.granted) {
+      requestPermission();
+    }
+  }, [permission]);
+
+  const handleBarCodeScanned = async ({ data }: { data: string }) => {
+    // Se stiamo già verificando o abbiamo già scansionato, ignora
+    if (isVerifying || scanned) return;
+
+    setScanned(true);
+    setIsVerifying(true);
+
     if (!authContext?.user || !gameState) return;
 
-    setScanning(true);
-    // In un'app reale, `scannedData` proverrebbe dalla fotocamera.
-    // Per la simulazione, usiamo un valore che sappiamo essere corretto.
-    const scannedData = "RISPOSTA_CORRETTA";
-
+    // Chiama il servizio per verificare il QR code
     const result = await verifyQRCode(
-      authContext.user.uid,
+      authContext.teamId.toString(),
       gameState.currentEventId,
-      gameState.currentRiddleIndex,
-      scannedData
+      data // Usa i dati reali del QR code
     );
 
     if (result.success) {
@@ -74,50 +61,82 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
         title: "Corretto!",
         message: result.message,
       });
-      navigation.goBack(); // Chiude il modale
+      navigation.navigate("GameTab");
     } else {
       modal?.showModal({
         type: "error",
         title: "Sbagliato!",
         message: result.message,
       });
+      setTimeout(() => setScanned(false), 2000);
     }
-    setScanning(false);
+    setIsVerifying(false);
   };
 
-  const scanBarPosition = scanAnimation.interpolate({
-    inputRange: [0, 1],
-    // Si muove dall'alto verso il basso all'interno del focus box
-    outputRange: [0, 250], // 250 è l'altezza del focus box
-  });
+  // --- Render condizionale in base ai permessi ---
+  if (!permission) {
+    return (
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: theme.colors.backgroundEnd },
+        ]}
+      />
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: theme.colors.backgroundEnd },
+        ]}
+      >
+        <Text style={styles.scannerPermissionText}>
+          Devi concedere l'accesso alla fotocamera per poter giocare.
+        </Text>
+        <PrimaryButton title="Concedi Permesso" onPress={requestPermission} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.scannerContainer}>
-      <View style={styles.scannerFocusBox}>
-        <Animated.View
-          style={[
-            styles.scannerBar,
-            { transform: [{ translateY: scanBarPosition }] },
-          ]}
-        >
-          <LinearGradient
-            colors={["transparent", "rgba(255, 193, 7, 0.8)", "transparent"]}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-      </View>
-      <Text style={styles.scannerText}>Inquadra il QR Code</Text>
-
-      <PrimaryButton
-        title={scanning ? "Verifica..." : "Simula Scansione Corretta"}
-        onPress={handleSimulateScan}
-        disabled={scanning || !gameState}
+      <CameraView
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        barcodeScannerSettings={{
+          barcodeTypes: ["qr"],
+        }}
+        style={StyleSheet.absoluteFillObject}
       />
+      <View style={styles.scannerMask} />
+      <View style={{ flexDirection: "row" }}>
+        <View style={styles.scannerMask} />
+        <View style={styles.scannerFocusBox} />
+        <View style={styles.scannerMask} />
+      </View>
+      <View
+        style={[
+          styles.scannerMask,
+          { alignItems: "center", justifyContent: "flex-start" },
+        ]}
+      >
+        <Text style={styles.scannerInfoText}>Inquadra il QR Code</Text>
+        {scanned && !isVerifying && (
+          <PrimaryButton
+            title="Scansiona di nuovo"
+            onPress={() => setScanned(false)}
+            style={{ marginTop: 20 }}
+          />
+        )}
+      </View>
+
       <TouchableOpacity
         onPress={() => navigation.goBack()}
-        style={{ marginTop: theme.spacing.lg }}
+        style={styles.scannerCloseButton}
       >
-        <Text style={{ color: theme.colors.textPrimary }}>Chiudi</Text>
+        <Text style={styles.scannerCloseButtonText}>Chiudi</Text>
       </TouchableOpacity>
     </View>
   );

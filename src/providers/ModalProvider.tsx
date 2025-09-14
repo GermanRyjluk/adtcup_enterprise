@@ -25,38 +25,47 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     title: "",
     message: "",
     type: "info",
+    persistent: false,
   });
 
-  // La funzione per mostrare il modale, ottimizzata con useCallback
-  const showModal = useCallback((options: ModalOptions) => {
-    // Mostra il modale con le opzioni fornite
-    setModalState({ ...options, visible: true });
-
-    // Imposta un timer per nascondere automaticamente il modale dopo un breve periodo
-    setTimeout(() => {
-      setModalState((prevState) => ({ ...prevState, visible: false }));
-    }, 2500); // Nasconde dopo 2.5 secondi
+  // Funzione per nascondere il modal, da chiamare manualmente
+  const hideModal = useCallback(() => {
+    setModalState((prevState) => ({ ...prevState, visible: false }));
   }, []);
+
+  const showModal = useCallback(
+    (options: ModalOptions) => {
+      setModalState({ ...options, visible: true });
+
+      // Se il modal NON è persistente, si chiude da solo dopo 2.5 secondi
+      if (!options.persistent) {
+        setTimeout(() => {
+          hideModal();
+        }, 2500);
+      }
+    },
+    [hideModal]
+  );
 
   // Il valore da passare al provider del contesto, ottimizzato con useMemo
   const contextValue = useMemo(
     () => ({
       showModal,
+      hideModal,
     }),
     [showModal]
   );
 
   return (
     <ModalContext.Provider value={contextValue}>
-      {/* Renderizza i componenti figli dell'app */}
       {children}
-
-      {/* Renderizza il componente modale, passandogli lo stato corrente */}
       <CustomModal
         visible={modalState.visible}
         title={modalState.title}
         message={modalState.message}
         type={modalState.type}
+        persistent={modalState.persistent} // Passiamo la nuova prop
+        onClose={hideModal} // Passiamo la funzione per chiudere
       />
     </ModalContext.Provider>
   );

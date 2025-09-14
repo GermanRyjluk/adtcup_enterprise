@@ -8,8 +8,10 @@ import {
   limit,
   getDocs,
   DocumentData,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
+import { Unsubscribe } from "firebase/auth";
 
 /**
  * @file eventService.ts
@@ -31,15 +33,43 @@ export const getEventDetails = async (
  * Recupera i dettagli di un team specifico.
  */
 export const getTeamDetails = async (
+  eventId: string,
   teamId: string
 ): Promise<DocumentData | null> => {
-  const teamDocRef = doc(db, "teams", teamId);
-  const teamSnap = await getDoc(teamDocRef);
-  return teamSnap.exists() ? teamSnap.data() : null;
+  try {
+    const teamDocRef = doc(db, "events", eventId, "teams", teamId.toString());
+    const teamSnap = await getDoc(teamDocRef);
+    return teamSnap.exists() ? teamSnap.data() : null;
+  } catch (error) {
+    console.error("Errore nel recupero dei dettagli del team:", error);
+    return null;
+  }
 };
 
 /**
- * (NUOVA FUNZIONE)
+ * Imposta un listener in tempo reale sui dettagli di un evento.
+ * @param eventId L'ID dell'evento da ascoltare.
+ * @param callback La funzione da eseguire ogni volta che i dati dell'evento cambiano.
+ * @returns Una funzione `unsubscribe` per interrompere l'ascolto.
+ */
+export const listenEventDetails = (
+  eventId: string,
+  callback: (data: DocumentData | null) => void
+): Unsubscribe => {
+  const eventDocRef = doc(db, "events", eventId);
+  return onSnapshot(
+    eventDocRef,
+    (docSnap) => {
+      callback(docSnap.exists() ? docSnap.data() : null);
+    },
+    (error) => {
+      console.error("Errore nell'ascolto dei dati dell'evento:", error);
+      callback(null);
+    }
+  );
+};
+
+/**
  * Recupera il prossimo evento imminente da Firestore.
  * Cerca l'evento con la data più vicina nel futuro.
  * @returns Una Promise che si risolve con i dati dell'evento e il suo ID, o null se non ci sono eventi futuri.

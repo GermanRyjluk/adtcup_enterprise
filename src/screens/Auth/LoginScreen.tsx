@@ -15,6 +15,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
+  sendEmailVerification,
 } from "firebase/auth";
 
 // --- Importazioni Condizionali ---
@@ -82,8 +83,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       if (isLoginView) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        navigation.navigate("VerifyEmail");
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        if (userCredential.user) {
+          await sendEmailVerification(userCredential.user);
+        }
       }
     } catch (error) {
       let title = "Errore";

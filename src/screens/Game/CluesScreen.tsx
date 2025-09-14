@@ -79,14 +79,24 @@ const CluesScreen: React.FC<CluesScreenProps> = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centeredContainer}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: theme.colors.backgroundEnd },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.accentPrimary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.cluesContainer}>
+    <View
+      style={[
+        styles.centeredContainer,
+        { backgroundColor: theme.colors.backgroundEnd },
+      ]}
+    >
       <View style={[styles.header, { paddingBottom: 0 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color={theme.colors.textPrimary} />

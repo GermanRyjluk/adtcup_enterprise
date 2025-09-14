@@ -19,6 +19,10 @@ import {
 import VerifyEmailScreen from "./src/screens/Auth/VerifyEmailScreen";
 import { styles } from "./src/styles/styles";
 import CompleteProfileScreen from "./src/screens/Auth/CompleteProfileScreen";
+import {
+  startGameForUser,
+  updateUserBookingStatus,
+} from "./src/api/userService";
 
 const Stack = createStackNavigator();
 
@@ -30,52 +34,55 @@ export default function App() {
     user: User | null;
     isProfileComplete: boolean;
     isGameStarted: boolean;
+    teamId: number;
+    currentEventId: string | null;
   }>({
     isLoading: true,
     user: null,
     isProfileComplete: false,
     isGameStarted: false,
+    teamId: 0,
+    currentEventId: null,
   });
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // --- UTENTE LOGGATO ---
-        // Controlliamo se il profilo utente esiste nel nostro database Firestore
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-          // Il profilo è completo, l'utente può accedere all'app
-          setAuthState({
-            user: firebaseUser,
-            isProfileComplete: true,
-            isLoading: false,
-            isGameStarted: false,
-          });
-        } else {
-          // L'utente è autenticato ma non ha un profilo nel database.
-          // Deve completare la registrazione.
-          setAuthState({
-            user: firebaseUser,
-            isProfileComplete: false,
-            isLoading: false,
-            isGameStarted: false,
-          });
-        }
-      } else {
-        // --- UTENTE NON LOGGATO ---
-        // Resettiamo lo stato
+  const checkUserStatus = async (firebaseUser: User | null) => {
+    if (firebaseUser) {
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
         setAuthState({
-          user: null,
+          user: firebaseUser,
+          isProfileComplete: true,
+          isLoading: false,
+          isGameStarted: userData.isGameStarted ?? false,
+          teamId: userData.teamId ?? null,
+          currentEventId: userData.currentEventId ?? null,
+        });
+      } else {
+        setAuthState({
+          user: firebaseUser,
           isProfileComplete: false,
           isLoading: false,
           isGameStarted: false,
+          teamId: 0,
+          currentEventId: null,
         });
       }
-    });
+    } else {
+      setAuthState({
+        user: null,
+        isProfileComplete: false,
+        isLoading: false,
+        isGameStarted: false,
+        teamId: 0,
+        currentEventId: null,
+      });
+    }
+  };
 
-    // Ritorna la funzione di cleanup per annullare l'iscrizione al listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, checkUserStatus);
     return () => unsubscribe();
   }, []);
 
@@ -84,13 +91,38 @@ export default function App() {
     () => ({
       user: authState.user,
       isProfileComplete: authState.isProfileComplete,
-      // Aggiungiamo le funzioni per modificare lo stato globale
-      startGame: () =>
-        setAuthState((prev) => ({ ...prev, isGameStarted: true })),
+      teamId: authState.teamId,
+      currentEventId: authState.currentEventId,
+      startGame: async (eventId: string) => {
+        if (authState.user) {
+          try {
+            // Chiama la funzione che aggiorna entrambi i documenti
+            await startGameForUser(authState.user.uid, eventId);
+
+            // Aggiorna lo stato locale per riflettere i cambiamenti e triggerare la navigazione
+            setAuthState((prev) => ({
+              ...prev,
+              isGameStarted: true,
+              currentEventId: eventId,
+            }));
+          } catch (error) {
+            console.error("Errore durante l'avvio del gioco:", error);
+            // Qui puoi mostrare un errore all'utente con il tuo modal
+          }
+        }
+      },
       completeProfile: () =>
         setAuthState((prev) => ({ ...prev, isProfileComplete: true })),
+      refreshAuthState: async () => {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await currentUser.reload(); // Prima ricarica i dati utente da Firebase
+        }
+        await checkUserStatus(currentUser); // Poi esegui il nostro controllo completo
+      },
     }),
-    [authState.user, authState.isProfileComplete]
+
+    [authState] // Assicurati che authState sia nelle dipendenze
   );
 
   // Mostra una schermata di avvio durante il controllo iniziale
@@ -165,7 +197,9 @@ export default function App() {
         <StatusBar barStyle="light-content" />
         <AuthContext.Provider value={authContextValue}>
           <ModalProvider>
-            <NavigationContainer>{renderContent()}</NavigationContainer>
+            <NavigationContainer theme={navigationTheme}>
+              {renderContent()}
+            </NavigationContainer>
           </ModalProvider>
         </AuthContext.Provider>
       </SafeAreaView>

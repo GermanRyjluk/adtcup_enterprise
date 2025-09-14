@@ -95,8 +95,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               // Il listener onAuthStateChanged gestirà la navigazione
             } catch (error: any) {
               console.error(
-                "Errore durante la cancellazione dell'account:",
-                error
+                "Errore durante la cancellazione dell'account. Effettua logout e login e riprova!"
               );
               // Firebase richiede un login recente per operazioni sensibili
               const message =
@@ -116,7 +115,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centeredContainer}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: theme.colors.backgroundEnd },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.accentPrimary} />
       </View>
     );
@@ -124,7 +128,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   if (!userProfile) {
     return (
-      <View style={styles.centeredContainer}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: theme.colors.backgroundEnd },
+        ]}
+      >
         <Icon name="alert-circle" size={60} color={theme.colors.error} />
         <Text
           style={[
@@ -149,7 +158,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.centeredContainer}>
+    <View
+      style={[
+        styles.centeredContainer,
+        { backgroundColor: theme.colors.backgroundEnd },
+      ]}
+    >
       <Animated.View
         style={[styles.authContent, { alignItems: "center" }, fadeInAnim]}
       >

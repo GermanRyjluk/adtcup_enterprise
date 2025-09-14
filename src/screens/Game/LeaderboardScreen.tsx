@@ -17,6 +17,8 @@ import { getUserProfile } from "../../api/userService";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 import { useFadeIn } from "../../hooks/animationHooks";
+import { getEventDetails, listenEventDetails } from "@/src/api/eventService";
+import { GameHeader } from "@/src/components/GameHeader";
 
 type LeaderboardScreenProps = GameTabScreenProps<"LeaderboardTab">;
 
@@ -45,16 +47,16 @@ const LeaderboardItem: React.FC<{
         fadeIn,
       ]}
     >
-      <Text style={styles.leaderboardPosition}>{position}</Text>
-      <View style={styles.leaderboardIconContainer}>
-        {medalIcons[position] ? (
+      <Text style={styles.leaderboardPosition}>{position}.</Text>
+      {medalIcons[position] ? (
+        <View style={styles.leaderboardIconContainer}>
           <Icon
             name={medalIcons[position].name}
             size={24}
             color={medalIcons[position].color}
           />
-        ) : null}
-      </View>
+        </View>
+      ) : null}
       <Text style={styles.leaderboardTeamName} numberOfLines={1}>
         {item.name}
       </Text>
@@ -69,38 +71,40 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   const authContext = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState<DocumentData[]>([]);
-  const [userTeamId, setUserTeamId] = useState<string | null>(null);
+  const [userTeamId, setUserTeamId] = useState<number | null>(null);
+  const [isScoreboardVisible, setIsScoreboardVisible] = useState(false);
 
   useEffect(() => {
-    const setupListeners = async () => {
-      if (!authContext?.user) {
-        setLoading(false);
-        return;
+    if (!authContext?.currentEventId || !authContext?.teamId) {
+      setLoading(false);
+      return;
+    }
+
+    setUserTeamId(authContext.teamId);
+
+    // 3. Listener per i dettagli dell'evento (per controllare la visibilità)
+    const unsubscribeEvent = listenEventDetails(
+      authContext.currentEventId,
+      (eventData) => {
+        setIsScoreboardVisible(eventData?.isScoreboardVisible ?? false);
       }
+    );
 
-      // 1. Recupera il profilo utente per ottenere eventId e teamId
-      const profile = await getUserProfile(authContext.user.uid);
-      if (profile?.currentEventId && profile?.teamId) {
-        setUserTeamId(profile.teamId);
-
-        // 2. Imposta il listener per la classifica
-        const unsubscribe = listenToLeaderboard(
-          profile.currentEventId,
-          (teams) => {
-            setLeaderboard(teams);
-            if (loading) setLoading(false);
-          }
-        );
-
-        // Funzione di cleanup
-        return () => unsubscribe();
-      } else {
-        setLoading(false); // Nessun evento o team trovato
+    // 4. Listener per i dati della classifica
+    const unsubscribeLeaderboard = listenToLeaderboard(
+      authContext.currentEventId,
+      (teams) => {
+        setLeaderboard(teams);
+        if (loading) setLoading(false);
       }
+    );
+
+    // 5. Funzione di cleanup che interrompe ENTRAMBI i listener
+    return () => {
+      unsubscribeEvent();
+      unsubscribeLeaderboard();
     };
-
-    setupListeners();
-  }, [authContext?.user]);
+  }, [authContext]);
 
   if (loading) {
     return (
@@ -112,26 +116,35 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
 
   return (
     <View style={styles.standardScreenContainer}>
-      <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Classifica</Text>
-      </View>
-      {leaderboard.length > 0 ? (
-        <FlatList
-          data={leaderboard}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <LeaderboardItem
-              item={item}
-              index={index}
-              isUserTeam={item.id === userTeamId}
-            />
-          )}
-          contentContainerStyle={{ paddingBottom: 100 }} // Spazio per la tab bar
-        />
+      <GameHeader title="Classifica" />
+
+      {/* 6. Render condizionale basato su isScoreboardVisible */}
+      {isScoreboardVisible ? (
+        leaderboard.length > 0 ? (
+          <FlatList
+            data={leaderboard}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <LeaderboardItem
+                item={item}
+                index={index}
+                isUserTeam={item.id === userTeamId}
+              />
+            )}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          />
+        ) : (
+          <View style={styles.centeredContainer}>
+            <Text style={styles.bodyText}>
+              La classifica è vuota al momento.
+            </Text>
+          </View>
+        )
       ) : (
         <View style={styles.centeredContainer}>
-          <Text style={styles.bodyText}>
-            La classifica per questo evento non è ancora disponibile.
+          <Icon name="eye-off" size={60} color={theme.colors.textSecondary} />
+          <Text style={[styles.bodyText, { marginTop: theme.spacing.md }]}>
+            La classifica non è visibile in questa fase dell'evento.
           </Text>
         </View>
       )}
