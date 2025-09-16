@@ -32,9 +32,11 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
     marginBottom: theme.spacing.md,
+    borderBottomEndRadius: theme.spacing.md,
+    borderBottomStartRadius: theme.spacing.md,
   },
 
   // --- Tipografia ---
@@ -294,7 +296,6 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: theme.radius.lg,
     borderTopRightRadius: theme.radius.lg,
     padding: theme.spacing.lg,
-    // Rimosso 'marginTop', lo spazio è gestito dallo spaziatore nello ScrollView
   },
   detailsTitle: {
     fontFamily: theme.fonts.secondary.bold,
@@ -459,7 +460,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: theme.spacing.sm,
   },
-  // --- Schermata di Gioco ---
+  // --- Schermata di Gioco (GameScreen) ---
   gameContainer: {
     flex: 1,
   },
@@ -468,7 +469,7 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.cardBackground,
     borderRadius: 4,
     marginVertical: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   progressBar: {
     height: "100%",
@@ -479,8 +480,8 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.md,
     padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
+    margin: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   riddleImage: {
     width: "100%",
@@ -494,12 +495,77 @@ export const styles = StyleSheet.create({
     lineHeight: 28,
     textAlign: "center",
   },
+  locationCard: {
+    backgroundColor: theme.colors.cardBackground,
+    borderRadius: theme.radius.lg,
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    overflow: "hidden", // Per arrotondare l'immagine
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  locationImage: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+  },
+  locationContent: {
+    padding: theme.spacing.lg,
+  },
+  locationDescriptionContainer: {
+    overflow: "hidden",
+  },
+  locationDescription: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 24,
+  },
+  readMoreTouchable: {
+    marginTop: -10,
+    marginBottom: theme.spacing.md,
+  },
+  readMoreText: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 14,
+    color: theme.colors.accentPrimary,
+  },
+
+  locationTitle: {
+    fontFamily: theme.fonts.secondary.bold,
+    fontSize: 28,
+    color: theme.colors.accentPrimary,
+    marginBottom: theme.spacing.sm,
+  },
+  locationDescription: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: theme.spacing.md,
+  },
+  locationInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: theme.spacing.md,
+  },
+  locationInfoText: {
+    fontFamily: theme.fonts.primary.medium,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    marginLeft: theme.spacing.sm,
+  },
+  locationButton: {
+    marginTop: theme.spacing.lg,
+  },
   clueCard: {
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.md,
     padding: theme.spacing.lg,
     alignItems: "center",
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
     marginBottom: 120,
   },
   clueTimerText: {
@@ -514,7 +580,44 @@ export const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     alignItems: "center",
     marginBottom: theme.spacing.lg,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+  },
+  teamHeaderContainer: {
+    height: SCREEN_HEIGHT * 0.38, // Occupa il 30% dell'altezza dello schermo
+    backgroundColor: theme.colors.cardBackground,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  teamHeaderImage: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+  },
+  teamPlaceholderIcon: {
+    marginBottom: theme.spacing.md,
+  },
+  teamPlaceholderText: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: theme.spacing.xl,
+  },
+  teamNameCharCount: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+  },
+  teamNameCharCountError: {
+    color: theme.colors.error,
+  },
+  teamContentContainer: {
+    backgroundColor: theme.colors.backgroundEnd,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    marginTop: -theme.radius.lg, // Tira il contenuto sopra l'header per l'effetto di overlap
+    paddingTop: theme.spacing.lg,
   },
   teamIconContainer: {
     width: 80,
@@ -525,15 +628,22 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: theme.spacing.md,
   },
+  teamNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: theme.spacing.md,
+    paddingBlock: theme.spacing.sm,
+  },
   teamNameInput: {
-    fontFamily: theme.fonts.primary.bold,
+    fontFamily: theme.fonts.secondary.bold,
     fontSize: 24,
     color: theme.colors.textPrimary,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.textSecondary,
-    paddingBottom: theme.spacing.sm,
     textAlign: "center",
-    width: "80%",
+  },
+  teamNameEditIcon: {
+    marginLeft: theme.spacing.sm,
+    paddingTop: 6, // Allinea l'icona verticalmente con il testo grande
   },
   captainOnlyText: {
     fontFamily: theme.fonts.primary.regular,
@@ -548,7 +658,7 @@ export const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   teamMemberAvatar: {
     width: 40,
@@ -569,7 +679,27 @@ export const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+  },
+  leaderboardRowTop: {
+    // transform: [{ scale: 1.5 }],
+    // marginVertical: theme.spacing.sm,
+  },
+  leaderboardRowFirst: {
+    backgroundColor: "rgba(255, 193, 7, 0.45)",
+    borderColor: "rgba(255, 193, 7, 0.5)",
+    paddingVertical: theme.spacing.lg + 5,
+    marginVertical: theme.spacing.sm,
+  },
+  leaderboardRowSecond: {
+    backgroundColor: "rgba(113, 198, 255, 0.45)", // Argento
+    borderColor: "rgba(192, 192, 192, 0.5)",
+    paddingVertical: theme.spacing.md + 8,
+  },
+  leaderboardRowThird: {
+    backgroundColor: "rgba(205, 127, 50, 0.45)", // Bronzo
+    borderColor: "rgba(205, 127, 50, 0.5)",
+    paddingVertical: theme.spacing.md + 3,
   },
   userLeaderboardRow: {
     borderWidth: 2,
@@ -589,7 +719,7 @@ export const styles = StyleSheet.create({
   },
   leaderboardIconContainer: {
     width: 24,
-    marginHorizontal: theme.spacing.sm,
+    // marginHorizontal: theme.spacing.sm,
     alignItems: "center",
   },
   leaderboardTeamName: {

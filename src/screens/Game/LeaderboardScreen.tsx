@@ -31,6 +31,22 @@ const LeaderboardItem: React.FC<{
   const fadeIn = useFadeIn(500, index * 100);
   const position = index + 1;
 
+  // Stili di base
+  const rowStyles = [styles.leaderboardRow, fadeIn];
+
+  // Applica stili speciali per il podio
+  if (position <= 3) {
+    rowStyles.push(styles.leaderboardRowTop);
+    if (position === 1) rowStyles.push(styles.leaderboardRowFirst);
+    if (position === 2) rowStyles.push(styles.leaderboardRowSecond);
+    if (position === 3) rowStyles.push(styles.leaderboardRowThird);
+  }
+
+  // Evidenzia il team dell'utente
+  if (isUserTeam) {
+    rowStyles.push(styles.userLeaderboardRow);
+  }
+
   const medalIcons: {
     [key: number]: { name: keyof typeof Icon.glyphMap; color: string };
   } = {
@@ -40,14 +56,18 @@ const LeaderboardItem: React.FC<{
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.leaderboardRow,
-        isUserTeam && styles.userLeaderboardRow,
-        fadeIn,
-      ]}
-    >
-      <Text style={styles.leaderboardPosition}>{position}.</Text>
+    <Animated.View style={rowStyles}>
+      <Text
+        style={[
+          styles.leaderboardPosition,
+          {
+            fontSize:
+              position == 1 ? 19 : position == 2 ? 18 : position == 3 ? 17 : 16,
+          },
+        ]}
+      >
+        {position}.
+      </Text>
       {medalIcons[position] ? (
         <View style={styles.leaderboardIconContainer}>
           <Icon
@@ -57,10 +77,29 @@ const LeaderboardItem: React.FC<{
           />
         </View>
       ) : null}
-      <Text style={styles.leaderboardTeamName} numberOfLines={1}>
+      <Text
+        style={[
+          styles.leaderboardTeamName,
+          {
+            fontSize:
+              position == 1 ? 19 : position == 2 ? 18 : position == 3 ? 17 : 16,
+          },
+        ]}
+        numberOfLines={1}
+      >
         {item.name}
       </Text>
-      <Text style={styles.leaderboardScore}>{item.score} pts</Text>
+      <Text
+        style={[
+          styles.leaderboardScore,
+          {
+            fontSize:
+              position == 1 ? 18 : position == 2 ? 16 : position == 3 ? 15 : 14,
+          },
+        ]}
+      >
+        {item.score} pts
+      </Text>
     </Animated.View>
   );
 };

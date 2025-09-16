@@ -24,6 +24,10 @@ import {
   updateUserBookingStatus,
 } from "./src/api/userService";
 
+import * as SplashScreen from "expo-splash-screen";
+
+SplashScreen.preventAutoHideAsync();
+
 const Stack = createStackNavigator();
 
 // --- Componente Principale App ---
@@ -125,18 +129,29 @@ export default function App() {
     [authState] // Assicurati che authState sia nelle dipendenze
   );
 
+  // Nascondi la splash screen quando il caricamento è terminato
+  useEffect(() => {
+    const hideSplashScreen = async () => {
+      if (!authState.isLoading) {
+        await SplashScreen.hideAsync();
+      }
+    };
+    hideSplashScreen();
+  }, [authState.isLoading]);
+
   // Mostra una schermata di avvio durante il controllo iniziale
   if (authState.isLoading) {
-    return (
-      <View
-        style={[
-          styles.centeredContainer,
-          { backgroundColor: theme.colors.backgroundStart },
-        ]}
-      >
-        <Text style={styles.logoText}>ADT CUP</Text>
-      </View>
-    );
+    // return (
+    //   <View
+    //     style={[
+    //       styles.centeredContainer,
+    //       { backgroundColor: theme.colors.backgroundStart },
+    //     ]}
+    //   >
+    //     <Text style={styles.logoText}>ADT CUP</Text>
+    //   </View>
+    // );
+    return null;
   }
 
   // --- Funzione per decidere quale stack di navigazione renderizzare ---

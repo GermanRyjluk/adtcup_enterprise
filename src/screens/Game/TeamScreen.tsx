@@ -6,7 +6,6 @@ import {
   FlatList,
   TextInput,
   Image,
-  TouchableOpacity,
   ActivityIndicator,
   Animated,
 } from "react-native";
@@ -22,7 +21,6 @@ import {
   listenToTeamMembers,
   updateTeamName,
 } from "../../api/teamService";
-import { getUserProfile } from "../../api/userService";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 import { useFadeIn } from "../../hooks/animationHooks";
@@ -55,58 +53,75 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
   const [teamData, setTeamData] = useState<DocumentData | null>(null);
   const [members, setMembers] = useState<DocumentData[]>([]);
   const [teamName, setTeamName] = useState("");
-  const [teamId, setTeamId] = useState<number | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null); // Modificato in string
   const [eventId, setEventId] = useState<string | null>(null);
-  const [isCaptain, setIsCaptain] = useState(false);
 
-  // 1. Recupera il teamId dell'utente al primo caricamento
   useEffect(() => {
     if (authContext?.teamId && authContext?.currentEventId) {
-      setTeamId(authContext.teamId);
+      setTeamId(authContext.teamId.toString()); // Converti in stringa
       setEventId(authContext.currentEventId);
     } else {
-      setLoading(false); // Se mancano dati, smetti di caricare.
+      setLoading(false);
     }
   }, [authContext?.teamId, authContext?.currentEventId]);
 
-  // 2. Imposta i listener quando il teamId è disponibile
   useEffect(() => {
     if (!teamId || !eventId) return;
-    // Listener per i dati del team
-    const unsubscribeTeam = listenToTeamData(
-      eventId,
-      teamId.toString(),
-      (data) => {
-        setTeamData(data);
-        setTeamName(data?.name || "");
-        if (loading) setLoading(false);
-      }
-    );
 
-    // Listener per i membri del team
+    const unsubscribeTeam = listenToTeamData(eventId, teamId, (data) => {
+      setTeamData(data);
+      setTeamName(data?.name || "");
+      if (loading) setLoading(false);
+    });
+
     const unsubscribeMembers = listenToTeamMembers(
       eventId,
-      teamId,
+      parseInt(teamId, 10), // Riconverti in numero per la query
       (memberData) => {
         setMembers(memberData);
       }
     );
 
-    // Funzione di cleanup
     return () => {
       unsubscribeTeam();
       unsubscribeMembers();
     };
-  }, [teamId, eventId, authContext?.user]);
+  }, [teamId, eventId]);
 
   const handleSaveTeamName = useCallback(async () => {
-    if (!teamId || !isCaptain) return; // Solo il capitano può salvare
+    if (!teamId || !eventId) return;
 
+    const trimmedName = teamName.trim();
     const originalName = teamData?.name;
-    if (teamName.trim() === originalName) return; // Nessuna modifica
+
+    // 1. Controlla la lunghezza prima di salvare
+    if (trimmedName.length > 22) {
+      modal?.showModal({
+        type: "error",
+        title: "Nome troppo lungo",
+        message: "Il nome del team non può superare i 22 caratteri.",
+      });
+      return; // Interrompe l'esecuzione per non salvare
+    }
+
+    // 2. Controlla se il nome è vuoto
+    if (!trimmedName) {
+      modal?.showModal({
+        type: "error",
+        title: "Nome non valido",
+        message: "Il nome del team non può essere vuoto.",
+      });
+      setTeamName(originalName || ""); // Ripristina il nome originale
+      return;
+    }
+
+    // 3. Controlla se il nome è stato effettivamente modificato
+    if (trimmedName === originalName) {
+      return; // Nessun cambiamento, non fare nulla
+    }
 
     try {
-      await updateTeamName(teamId.toString(), teamName);
+      await updateTeamName(eventId, teamId, trimmedName);
       modal?.showModal({
         type: "success",
         title: "Successo",
@@ -114,14 +129,14 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
       });
     } catch (error) {
       console.error("Errore aggiornamento nome team:", error);
-      setTeamName(originalName || ""); // Ripristina il nome originale in caso di errore
+      setTeamName(originalName || ""); // Ripristina in caso di errore di salvataggio
       modal?.showModal({
         type: "error",
-        title: "Errore",
-        message: "Impossibile aggiornare il nome.",
+        title: "Errore di Salvataggio",
+        message: "Impossibile aggiornare il nome. Riprova.",
       });
     }
-  }, [teamId, teamName, teamData, isCaptain, modal]);
+  }, [teamId, eventId, teamName, teamData, modal]);
 
   if (loading) {
     return (
@@ -142,49 +157,92 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.standardScreenContainer}>
-      <GameHeader title="Il Mio Team" />
-
-      <View style={styles.teamCard}>
-        <TouchableOpacity style={styles.teamIconContainer}>
-          <Icon name="camera" size={32} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-        <TextInput
-          style={styles.teamNameInput}
-          value={teamName}
-          onChangeText={setTeamName}
-          onBlur={handleSaveTeamName} // Salva quando l'utente esce dal campo
-          placeholder="Nome del Team"
-          placeholderTextColor={theme.colors.textSecondary}
-          editable={isCaptain} // Il campo è modificabile solo se l'utente è il capitano
-        />
-        {!isCaptain && (
-          <Text style={styles.captainOnlyText}>
-            Solo il capitano può modificare il nome.
-          </Text>
-        )}
-      </View>
-
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            paddingHorizontal: theme.spacing.md,
-            paddingBottom: theme.spacing.md,
-          },
-        ]}
-      >
-        Membri
-      </Text>
-      <FlatList
-        data={members}
-        renderItem={({ item, index }) => (
-          <TeamMemberItem item={item} index={index} />
-        )}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
+    <View style={{ flex: 1 }}>
+      <GameHeader
+        title="Il Mio Team"
+        styles_override={{
+          marginBottom: -20,
+          zIndex: 2,
+          paddingVertical: theme.spacing.md,
+          backgroundColor: theme.colors.backgroundEnd,
+        }}
       />
-    </ScrollView>
+      <ScrollView>
+        {/* --- Header con Immagine o Placeholder --- */}
+        <View style={styles.teamHeaderContainer}>
+          {teamData.photoUrl ? (
+            <Image
+              source={{ uri: teamData.photoUrl }}
+              style={styles.teamHeaderImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ alignItems: "center" }}>
+              <Icon
+                name="camera-off"
+                size={40}
+                color={theme.colors.textSecondary}
+                style={styles.teamPlaceholderIcon}
+              />
+              <Text style={styles.teamPlaceholderText}>
+                Chiedi a un admin di caricare la foto del team!
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* --- Contenuto della Schermata --- */}
+        <View style={styles.teamContentContainer}>
+          {/* Nuovo contenitore per il nome del team */}
+          <View style={styles.teamNameContainer}>
+            <TextInput
+              style={styles.teamNameInput}
+              value={teamName}
+              onChangeText={setTeamName}
+              onBlur={handleSaveTeamName}
+              placeholder="Nome Team"
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+            <Icon
+              name="edit-2"
+              size={18}
+              color={theme.colors.textSecondary}
+              style={styles.teamNameEditIcon}
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.teamNameCharCount,
+              teamName.length > 22 && styles.teamNameCharCountError,
+            ]}
+          >
+            {teamName.length}/22 caratteri
+          </Text>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                paddingHorizontal: theme.spacing.lg,
+                paddingBottom: theme.spacing.md,
+              },
+            ]}
+          >
+            Membri
+          </Text>
+          <FlatList
+            data={members}
+            renderItem={({ item, index }) => (
+              <TeamMemberItem item={item} index={index} />
+            )}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

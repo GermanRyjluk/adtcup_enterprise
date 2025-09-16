@@ -9,16 +9,20 @@ import { theme } from "../theme/theme";
 
 type GameHeaderProps = {
   title: string;
+  styles_override?: object;
 };
 
 // Tipizziamo la navigazione per avere l'autocompletamento e la sicurezza dei tipi
 type NavigationProps = StackNavigationProp<MainStackParamList>;
 
-export const GameHeader: React.FC<GameHeaderProps> = ({ title }) => {
+export const GameHeader: React.FC<GameHeaderProps> = ({
+  title,
+  styles_override,
+}) => {
   const navigation = useNavigation<NavigationProps>();
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, styles_override]}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
         <Icon name="user" size={28} color={theme.colors.textPrimary} />

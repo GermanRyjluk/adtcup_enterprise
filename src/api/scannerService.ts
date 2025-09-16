@@ -60,7 +60,6 @@ export const verifyQRCode = async (
     // Aggiorna il team
     batch.update(teamDocRef, {
       currentRiddleIndex: scannedQuizId,
-      currentRiddleNumber: increment(1),
       lastScanTime: scanTime,
     });
 

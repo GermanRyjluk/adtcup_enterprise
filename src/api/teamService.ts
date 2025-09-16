@@ -79,13 +79,14 @@ export const listenToTeamMembers = (
  * @returns Una Promise che si risolve al completamento dell'operazione.
  */
 export const updateTeamName = async (
+  eventId: string,
   teamId: string,
   newName: string
 ): Promise<void> => {
   if (!newName.trim()) {
     throw new Error("Il nome del team non può essere vuoto.");
   }
-  const teamDocRef = doc(db, "teams", teamId);
+  const teamDocRef = doc(db, "events", eventId, "teams", teamId);
   await updateDoc(teamDocRef, {
     name: newName.trim(),
   });

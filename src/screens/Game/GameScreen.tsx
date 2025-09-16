@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -6,8 +12,12 @@ import {
   Image,
   ActivityIndicator,
   DimensionValue,
+  Linking,
+  TouchableOpacity,
+  Animated,
 } from "react-native";
 import { DocumentData, Timestamp } from "firebase/firestore";
+import { Feather as Icon } from "@expo/vector-icons";
 
 // --- Importazioni Locali ---
 import { AuthContext } from "../../contexts/AuthContext";
@@ -24,6 +34,111 @@ import { GameHeader } from "@/src/components/GameHeader";
 
 type GameScreenProps = GameTabScreenProps<"GameTab">;
 
+// --- Componenti per i diversi tipi di schermata ---
+
+const RiddleComponent: React.FC<{ riddle: DocumentData }> = ({ riddle }) => {
+  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
+
+  useEffect(() => {
+    if (riddle?.photo) {
+      Image.getSize(
+        riddle.photo,
+        (width, height) => setImageAspectRatio(width / height),
+        () => setImageAspectRatio(16 / 9)
+      );
+    }
+  }, [riddle?.photo]);
+
+  return (
+    <View style={styles.riddleCard}>
+      {riddle.photo && (
+        <Image
+          source={{ uri: riddle.photo }}
+          style={[
+            styles.riddleImage,
+            {
+              aspectRatio: imageAspectRatio,
+              marginBottom: riddle.message ? theme.spacing.md : undefined,
+            },
+          ]}
+        />
+      )}
+      {riddle.message && (
+        <Text style={styles.riddleText}>{riddle.message}</Text>
+      )}
+    </View>
+  );
+};
+
+const LocationComponent: React.FC<{ location: DocumentData }> = ({
+  location,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+
+  const handleOpenMaps = () => {
+    if (location.mapsLink) {
+      Linking.openURL(location.mapsLink);
+    }
+  };
+
+  const toggleDescription = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <View style={[styles.locationCard, { marginBottom: 120 }]}>
+      {location.photo && (
+        <Image source={{ uri: location.photo }} style={styles.locationImage} />
+      )}
+      <View style={styles.locationContent}>
+        <Text style={styles.locationTitle}>{location.locationName}</Text>
+
+        <Text
+          style={styles.locationDescription}
+          numberOfLines={isExpanded ? undefined : 2}
+          onTextLayout={(e) => {
+            if (e.nativeEvent.lines.length > 1 && !canExpand) {
+              setCanExpand(true);
+            }
+          }}
+        >
+          {location.description}
+        </Text>
+
+        {/* Il pulsante appare solo se necessario */}
+        {canExpand && (
+          <TouchableOpacity
+            onPress={toggleDescription}
+            style={styles.readMoreTouchable}
+          >
+            <Text style={styles.readMoreText}>
+              {isExpanded ? "Leggi di meno" : "Leggi di più"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.locationInfoRow}>
+          <Icon name="clock" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.locationInfoText}>{location.openingHours}</Text>
+        </View>
+        <View style={styles.locationInfoRow}>
+          <Icon name="map-pin" size={18} color={theme.colors.textSecondary} />
+          <Text style={styles.locationInfoText}>{location.address}</Text>
+        </View>
+        <PrimaryButton
+          title="VAI ALLA MAPPA"
+          onPress={handleOpenMaps}
+          icon="corner-up-right"
+          style={styles.locationButton}
+          disabled={!location.mapsLink}
+        />
+      </View>
+    </View>
+  );
+};
+
+// ... (il resto del componente GameScreen rimane invariato)
 const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
   const authContext = useContext(AuthContext);
 
@@ -31,7 +146,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentRiddle, setCurrentRiddle] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
   const [timeToNextClue, setTimeToNextClue] = useState(0);
   const [unlockedCluesCount, setUnlockedCluesCount] = useState(0);
 
@@ -62,18 +176,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
     return () => unsubscribe();
   }, [gameState]);
 
-  // Calcolo delle dimensioni dell'immagine
-  useEffect(() => {
-    if (currentRiddle?.photo) {
-      Image.getSize(
-        currentRiddle.photo,
-        (width, height) => setImageAspectRatio(width / height),
-        () => setImageAspectRatio(16 / 9)
-      );
-    }
-  }, [currentRiddle?.photo]);
-
-  // Countdown per gli indizi (versione semplificata e corretta)
+  // Countdown per gli indizi
   useEffect(() => {
     const timerId = setInterval(() => {
       if (gameState?.lastScanTime && currentRiddle) {
@@ -151,6 +254,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
     (currentRiddle.currentRiddleNumber / totalRiddles) * 100
   }%` as DimensionValue;
 
+  const renderContent = () => {
+    if (currentRiddle.type === "location") {
+      return <LocationComponent location={currentRiddle} />;
+    }
+    // Di default, mostra l'indovinello
+    return <RiddleComponent riddle={currentRiddle} />;
+  };
+
   return (
     <ScrollView style={styles.gameContainer}>
       <GameHeader
@@ -160,39 +271,25 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
         <View style={[styles.progressBar, { width: progress }]} />
       </View>
 
-      <View style={styles.riddleCard}>
-        {currentRiddle.photo && (
-          <Image
-            source={{ uri: currentRiddle.photo }}
-            style={[
-              styles.riddleImage,
-              {
-                aspectRatio: imageAspectRatio,
-                marginBottom: currentRiddle.message ? theme.spacing.md : null,
-              },
-            ]}
-          />
-        )}
-        {currentRiddle.message && (
-          <Text style={styles.riddleText}>{currentRiddle.message}</Text>
-        )}
-      </View>
+      {renderContent()}
 
-      <View style={styles.clueCard}>
-        <Text style={styles.clueTimerText}>{getClueButtonSubtitle()}</Text>
-        <PrimaryButton
-          title={`Indizi (${unlockedCluesCount} / ${
-            currentRiddle?.maxClues || 3
-          })`}
-          onPress={() =>
-            navigation.navigate("Clues", {
-              riddleId: String(gameState.currentRiddleIndex),
-            })
-          }
-          disabled={unlockedCluesCount === 0}
-          style={{ width: "100%" }}
-        />
-      </View>
+      {currentRiddle.type === "riddle" && (
+        <View style={styles.clueCard}>
+          <Text style={styles.clueTimerText}>{getClueButtonSubtitle()}</Text>
+          <PrimaryButton
+            title={`Indizi (${unlockedCluesCount} / ${
+              currentRiddle?.maxClues || 3
+            })`}
+            onPress={() =>
+              navigation.navigate("Clues", {
+                riddleId: String(gameState.currentRiddleIndex),
+              })
+            }
+            disabled={unlockedCluesCount === 0}
+            style={{ width: "100%" }}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 };

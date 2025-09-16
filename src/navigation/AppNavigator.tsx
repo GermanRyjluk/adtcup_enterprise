@@ -104,7 +104,7 @@ const TabBarIcon: React.FC<{
   const icons: {
     [key in keyof GameTabParamList]?: keyof typeof Icon.glyphMap;
   } = {
-    GameTab: "award",
+    GameTab: "key",
     TeamTab: "users",
     LeaderboardTab: "bar-chart-2",
     ManualTab: "book-open",
@@ -138,7 +138,7 @@ const GameTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
-      // tabBarShowLabel: false,
+      tabBarShowLabel: false,
       tabBarStyle: styles.tabBar,
       tabBarInactiveTintColor: theme.colors.textSecondary,
       tabBarActiveTintColor: theme.colors.accentPrimary,
