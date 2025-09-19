@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useContext } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Animated,
-  ActivityIndicator,
-} from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import { DocumentData } from "firebase/firestore";
+import React, { useContext, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // --- Importazioni Locali ---
-import { AuthContext } from "../../contexts/AuthContext";
-import { PreGameNavigationProps } from "../../navigation/types";
-import { getUserProfile } from "../../api/userService";
 import { getUpcomingEvent } from "../../api/eventService";
+import { getUserProfile } from "../../api/userService";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { AuthContext } from "../../contexts/AuthContext";
+import { useFadeIn } from "../../hooks/animationHooks";
+import { PreGameNavigationProps } from "../../navigation/types";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { useFadeIn } from "../../hooks/animationHooks";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { populateManualTips } from "@/src/api/popolateService";
 
 // --- Componenti Ausiliari ---
 const TipCard: React.FC<{ item: any; index: number }> = ({ item, index }) => {
@@ -117,21 +117,25 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.countdownContentContainer}>
       {/* --- Sezione Superiore --- */}
-      <View>
-        <View style={styles.header}>
-          <Text style={styles.logoTextSmall}>ADT CUP</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-            <Icon name="user" size={28} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoTextPart}>ADT</Text>
+          <Image
+            source={require("../../../assets/images/icon.png")}
+            style={styles.logoIcon}
+          />
+          <Text style={styles.logoTextPart}>CUP</Text>
         </View>
-
-        <Animated.View style={[fadeInAnim, styles.welcomeContainer]}>
-          <Text style={styles.countdownWelcome}>Ciao,</Text>
-          <Text style={styles.countdownWelcomeUser}>
-            {userProfile?.username || "Giocatore"}!
-          </Text>
-        </Animated.View>
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+          <Icon name="user" size={28} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
       </View>
+      <Animated.View style={[fadeInAnim, styles.welcomeContainer]}>
+        <Text style={styles.countdownWelcome}>Ciao,</Text>
+        <Text style={styles.countdownWelcomeUser}>
+          {userProfile?.username || "Giocatore"}!
+        </Text>
+      </Animated.View>
 
       {/* --- Sezione Centrale (si espande per riempire lo spazio) --- */}
       <View style={{ flex: 1, justifyContent: "center" }}>

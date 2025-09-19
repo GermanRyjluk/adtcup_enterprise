@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
   authContent: {
     width: "100%",
     maxWidth: 400,
+    justifyContent: "center",
   },
   standardScreenContainer: {
     flex: 1,
@@ -54,7 +55,7 @@ export const styles = StyleSheet.create({
   },
   authTitle: {
     fontFamily: theme.fonts.primary.bold,
-    fontSize: 32,
+    fontSize: 28,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
     textAlign: "center",
@@ -537,7 +538,22 @@ export const styles = StyleSheet.create({
     paddingBottom: 100, // Spazio per la tab bar
   },
 
-  // --- Stili Aggiornati e Corretti per CountdownScreen ---
+  // --- Stili per CountdownScreen ---
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoTextPart: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 24,
+    color: theme.colors.textPrimary,
+  },
+  logoIcon: {
+    width: 50, // Puoi aggiustare la dimensione come preferisci
+    height: 50, // Puoi aggiustare la dimensione come preferisci
+    marginHorizontal: 2,
+  },
   countdownContentContainer: {
     flex: 1, // Fondamentale: fa sì che il container occupi tutto lo schermo
     justifyContent: "space-between", // Distribuisce lo spazio verticalmente

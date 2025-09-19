@@ -1,22 +1,18 @@
-import React, { useState, useCallback, useContext } from "react";
 import {
-  Text,
-  View,
-  ScrollView,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import React, { useCallback, useContext, useState } from "react";
+import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
-  Animated,
+  ScrollView,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { Feather as Icon } from "@expo/vector-icons";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithCredential,
-  sendEmailVerification,
-} from "firebase/auth";
 
 // --- Importazioni Condizionali ---
 // Importiamo il nostro helper per controllare l'ambiente
@@ -41,15 +37,15 @@ if (!isExpoGo) {
 }
 
 // --- Importazioni Locali ---
+import { Image } from "react-native";
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { StyledInput } from "../../components/StyledInput";
 import { auth } from "../../config/firebaseConfig";
 import { ModalContext } from "../../contexts/ModalContext";
 import { useFadeIn } from "../../hooks/animationHooks";
+import { AuthNavigationProps } from "../../navigation/types";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { StyledInput } from "../../components/StyledInput";
-import { AnimatedPressable } from "../../components/AnimatedPressable";
-import { AuthNavigationProps } from "../../navigation/types";
 
 type LoginScreenProps = AuthNavigationProps<"Login">;
 
@@ -210,7 +206,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.authContainer}>
         <Animated.View style={[styles.authContent, fadeInAnim]}>
-          <Text style={styles.logoText}>ADT CUP</Text>
+          <View
+            style={[styles.logoContainer, { marginBottom: theme.spacing.sm }]}
+          >
+            <Text
+              style={[
+                styles.logoTextPart,
+                { fontSize: 40, fontFamily: theme.fonts.primary.extraBold },
+              ]}
+            >
+              ADT
+            </Text>
+            <Image
+              source={require("../../../assets/images/icon.png")}
+              style={[styles.logoIcon, { width: 100, height: 100 }]}
+            />
+            <Text
+              style={[
+                styles.logoTextPart,
+                {
+                  fontSize: 40,
+                  fontFamily: theme.fonts.primary.extraBold,
+                },
+              ]}
+            >
+              CUP
+            </Text>
+          </View>
           <Text style={styles.authTitle}>
             {isLoginView ? "Bentornato!" : "Crea un Account"}
           </Text>
