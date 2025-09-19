@@ -18,7 +18,7 @@ export const theme = {
     textPrimary: "#EAEAEA",
     textSecondary: "#B0B0B0",
     accentPrimary: "#FFC107",
-    cardBackground: "#4f4869ff",
+    cardBackground: "#201E42",
     success: "#2ecc71",
     error: "#e74c3c",
     inputBackground: "rgba(255, 255, 255, 0.1)",
@@ -26,10 +26,10 @@ export const theme = {
   },
   fonts: {
     primary: {
-      regular: "Poppins_400Regular", // Nomi dei font come verranno caricati con expo-font
-      medium: "Poppins_500Medium",
-      bold: "Poppins_700Bold",
-      extraBold: "Poppins_800ExtraBold",
+      regular: "Montserrat_400Regular", // Nomi dei font come verranno caricati con expo-font
+      medium: "Montserrat_500Medium",
+      bold: "Montserrat_700Bold",
+      extraBold: "Montserrat_800ExtraBold",
     },
     secondary: {
       bold: "PlayfairDisplay_700Bold",

@@ -19,6 +19,7 @@ import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 import { useFadeIn } from "../../hooks/animationHooks";
 import { PrimaryButton } from "../../components/PrimaryButton";
+import { populateManualTips } from "@/src/api/popolateService";
 
 // --- Componenti Ausiliari ---
 const TipCard: React.FC<{ item: any; index: number }> = ({ item, index }) => {
@@ -49,6 +50,11 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
   });
 
   const fadeInAnim = useFadeIn();
+
+  // Funzione per popolare il database velocemente
+  // useEffect(() => {
+  //   populateManualTips("AurmHFUxjqy7UxmXO38v");
+  // }, []);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -97,34 +103,6 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
     return () => clearInterval(interval);
   }, [event]);
 
-  const mockManualCards = [
-    {
-      id: "1",
-      icon: "battery-charging",
-      title: "Batteria",
-      description:
-        "Ricorda di avere il batteria sufficiente prima dell'inizio dell'evento",
-    },
-    {
-      id: "2",
-      icon: "alert-triangle",
-      title: "Collabora",
-      description: "Indossa vestiti e scarpe comode.",
-    },
-    {
-      id: "3",
-      icon: "grid",
-      title: "Scansiona",
-      description: "Trova i QR code per avanzare nel gioco.",
-    },
-    {
-      id: "4",
-      icon: "help-circle",
-      title: "Usa gli Indizi",
-      description: "Se sei bloccato, aspetta l'arrivo di un indizio!",
-    },
-  ];
-
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
@@ -133,8 +111,10 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
     );
   }
 
+  // Estrai i consigli utili dai dati dell'evento, con un fallback a un array vuoto
+  const helpfulTips = event?.data?.helpfulTips || [];
+
   return (
-    // CORREZIONE: Usiamo un View con flex: 1 invece di ScrollView per un layout controllato
     <View style={styles.countdownContentContainer}>
       {/* --- Sezione Superiore --- */}
       <View>
@@ -201,22 +181,28 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
       </View>
 
       {/* --- Sezione Inferiore --- */}
-      <View style={{ marginBottom: theme.spacing.lg }}>
-        <Text style={styles.sectionTitle}>Consigli Utili</Text>
-        <FlatList
-          data={mockManualCards}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.md,
-            paddingTop: theme.spacing.md,
+      {helpfulTips.length > 0 && (
+        <View
+          style={{
+            marginBottom: theme.spacing.lg,
+            paddingHorizontal: theme.spacing.lg,
           }}
-          renderItem={({ item, index }) => (
-            <TipCard item={item} index={index} />
-          )}
-        />
-      </View>
+        >
+          <Text style={styles.sectionTitle}>Consigli Utili</Text>
+          <FlatList
+            data={helpfulTips}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{
+              paddingTop: theme.spacing.md,
+            }}
+            renderItem={({ item, index }) => (
+              <TipCard item={item} index={index} />
+            )}
+          />
+        </View>
+      )}
     </View>
   );
 };

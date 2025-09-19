@@ -1,10 +1,10 @@
 import {
   collection,
-  query,
-  orderBy,
-  onSnapshot,
-  Unsubscribe,
   DocumentData,
+  onSnapshot,
+  orderBy,
+  query,
+  Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 
@@ -37,14 +37,13 @@ export const listenToLeaderboard = (
     (querySnapshot) => {
       const leaderboardData: DocumentData[] = [];
       querySnapshot.forEach((doc) => {
-        // Aggiungiamo l'ID del documento (che è l'ID del team) ai dati
         leaderboardData.push({ id: doc.id, ...doc.data() });
       });
       callback(leaderboardData);
     },
     (error) => {
       console.error("Errore nell'ascolto della classifica:", error);
-      callback([]); // In caso di errore, ritorna un array vuoto
+      callback([]);
     }
   );
 

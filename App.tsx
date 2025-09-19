@@ -1,28 +1,32 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { SafeAreaView, StatusBar, View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { LinearGradient } from "expo-linear-gradient";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import React, { useEffect, useMemo, useState } from "react";
+import { SafeAreaView, StatusBar } from "react-native";
 
 // --- Importazioni Locali ---
+import { startGameForUser } from "./src/api/userService";
 import { auth, db } from "./src/config/firebaseConfig";
-import { theme, navigationTheme } from "./src/theme/theme";
 import { AuthContext } from "./src/contexts/AuthContext";
-import { ModalProvider } from "./src/providers/ModalProvider";
 import {
   AuthStack,
-  PreGameStack,
   MainStack,
+  PreGameStack,
 } from "./src/navigation/AppNavigator";
-import VerifyEmailScreen from "./src/screens/Auth/VerifyEmailScreen";
-import { styles } from "./src/styles/styles";
+import { ModalProvider } from "./src/providers/ModalProvider";
 import CompleteProfileScreen from "./src/screens/Auth/CompleteProfileScreen";
+import VerifyEmailScreen from "./src/screens/Auth/VerifyEmailScreen";
+import { navigationTheme, theme } from "./src/theme/theme";
+
 import {
-  startGameForUser,
-  updateUserBookingStatus,
-} from "./src/api/userService";
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_700Bold,
+  Montserrat_800ExtraBold,
+  useFonts,
+} from "@expo-google-fonts/montserrat";
 
 import * as SplashScreen from "expo-splash-screen";
 
@@ -32,6 +36,13 @@ const Stack = createStackNavigator();
 
 // --- Componente Principale App ---
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_700Bold,
+    Montserrat_800ExtraBold,
+  });
+
   // Stato unificato per gestire l'autenticazione
   const [authState, setAuthState] = useState<{
     isLoading: boolean;
@@ -108,6 +119,7 @@ export default function App() {
               ...prev,
               isGameStarted: true,
               currentEventId: eventId,
+              teamId: 0,
             }));
           } catch (error) {
             console.error("Errore durante l'avvio del gioco:", error);

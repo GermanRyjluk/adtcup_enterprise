@@ -32,7 +32,7 @@ export type GameTabParamList = {
 export type MainStackParamList = {
   GameTabs: { screen: keyof GameTabParamList };
   ScannerModal: undefined;
-  Clues: { riddleId: string };
+  Clues: { riddleId: string; unlockedCluesCount: number };
   Profile: undefined;
 };
 

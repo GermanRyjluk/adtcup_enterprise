@@ -26,18 +26,10 @@ export const listenToClues = (
   riddleId: string,
   callback: (clues: DocumentData[]) => void
 ): Unsubscribe => {
-  // Riferimento alla sotto-collezione 'clues' dell'indovinello specifico
-  const cluesRef = collection(
-    db,
-    "events",
-    eventId,
-    "riddles",
-    riddleId,
-    "clues"
-  );
+  // Il percorso alla collezione "hints" è corretto come indicato da te.
+  const cluesRef = collection(db, "events", eventId, "quiz", riddleId, "hints");
 
-  // Ordina gli indizi per un campo 'order' o 'timestamp' per visualizzarli in sequenza
-  const q = query(cluesRef, orderBy("order", "asc"));
+  const q = query(cluesRef);
 
   const unsubscribe = onSnapshot(
     q,
@@ -46,6 +38,11 @@ export const listenToClues = (
       querySnapshot.forEach((doc) => {
         cluesData.push({ id: doc.id, ...doc.data() });
       });
+
+      // ORDINIAMO I DATI QUI, nell'app, dopo averli ricevuti.
+      // Convertiamo gli ID in numeri per un ordinamento corretto.
+      cluesData.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
+
       callback(cluesData);
     },
     (error) => {

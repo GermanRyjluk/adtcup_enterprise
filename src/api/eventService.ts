@@ -1,17 +1,17 @@
+import { Unsubscribe } from "firebase/auth";
 import {
-  doc,
-  getDoc,
   collection,
+  doc,
+  DocumentData,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
   query,
   where,
-  orderBy,
-  limit,
-  getDocs,
-  DocumentData,
-  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
-import { Unsubscribe } from "firebase/auth";
 
 /**
  * @file eventService.ts
@@ -79,10 +79,13 @@ export const getUpcomingEvent = async (): Promise<{
   data: DocumentData;
 } | null> => {
   try {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
     const eventsRef = collection(db, "events");
     const q = query(
       eventsRef,
-      where("startTime", ">", new Date()), // Filtra solo eventi con data futura
+      where("startTime", ">", oneWeekAgo), // Filtra solo eventi con data futura
       orderBy("startTime", "asc"), // Ordina per data crescente per trovare il più vicino
       limit(1) // Vogliamo solo il primo risultato
     );

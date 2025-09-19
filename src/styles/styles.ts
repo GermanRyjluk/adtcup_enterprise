@@ -1,5 +1,5 @@
-import { StyleSheet, Platform } from "react-native";
-import { theme, SCREEN_WIDTH, SCREEN_HEIGHT } from "../theme/theme";
+import { Platform, StyleSheet } from "react-native";
+import { SCREEN_HEIGHT, SCREEN_WIDTH, theme } from "../theme/theme";
 
 /**
  * @constant styles
@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.bold,
     fontSize: 22,
     color: theme.colors.textPrimary,
-    // paddingHorizontal: theme.spacing.md,
+    // paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
   },
   bodyText: {
@@ -234,7 +234,7 @@ export const styles = StyleSheet.create({
     left: 20,
     right: 20,
     elevation: 0,
-    backgroundColor: theme.colors.backgroundEnd,
+    backgroundColor: theme.colors.backgroundStart,
     borderTopStartRadius: theme.radius.md,
     borderTopEndRadius: theme.radius.md,
     height: 70,
@@ -296,9 +296,10 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: theme.radius.lg,
     borderTopRightRadius: theme.radius.lg,
     padding: theme.spacing.lg,
+    marginTop: -20,
   },
   detailsTitle: {
-    fontFamily: theme.fonts.secondary.bold,
+    fontFamily: theme.fonts.primary.extraBold,
     fontSize: 38,
     color: theme.colors.accentPrimary,
     marginBottom: theme.spacing.md,
@@ -378,6 +379,164 @@ export const styles = StyleSheet.create({
     marginLeft: theme.spacing.sm,
   },
 
+  mcContainer: {
+    flex: 1,
+    padding: theme.spacing.md,
+    justifyContent: "space-between",
+  },
+  mcHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  mcQuestionCount: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  mcTimerText: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 18,
+    color: theme.colors.accentPrimary,
+  },
+  mcQuestionContainer: {
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  },
+  mcQuestionText: {
+    fontFamily: theme.fonts.secondary.bold,
+    fontSize: 24,
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    marginBottom: theme.spacing.lg,
+  },
+  mcQuestionImage: {
+    width: "100%",
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.lg,
+  },
+  mcAnswersContainer: {
+    width: "100%",
+  },
+  mcAnswerButton: {
+    backgroundColor: theme.colors.cardBackground,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.sm,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  mcAnswerButtonSelected: {
+    borderColor: theme.colors.accentPrimary,
+    backgroundColor: "rgba(255, 193, 7, 0.1)",
+  },
+  mcAnswerText: {
+    fontFamily: theme.fonts.primary.medium,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+  },
+  mcNavigation: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    paddingBottom: 100,
+  },
+  mcNavButton: {
+    padding: theme.spacing.md,
+  },
+
+  // --- Stili per Multiple Choice Leaderboard ---
+  mcLeaderboardContainer: {
+    flex: 1,
+    padding: theme.spacing.md,
+  },
+  userResultCard: {
+    backgroundColor: theme.colors.cardBackground,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.accentPrimary,
+  },
+  userResultTitle: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 20,
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
+  },
+  userResultRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  userResultBlock: {
+    alignItems: "center",
+  },
+  userResultLabel: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  userResultValue: {
+    fontFamily: theme.fonts.secondary.bold,
+    fontSize: 28,
+    color: theme.colors.accentPrimary,
+  },
+  quizLeaderboardHeader: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBackground,
+    paddingBottom: theme.spacing.sm,
+  },
+  quizLeaderboardHeaderText: {
+    fontFamily: theme.fonts.primary.bold,
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+  },
+  quizLeaderboardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  quizLeaderboardPosition: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    width: 30,
+  },
+  quizLeaderboardTeamName: {
+    flex: 1,
+    fontFamily: theme.fonts.primary.medium,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+  },
+  quizLeaderboardScore: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    width: 60,
+    textAlign: "right",
+  },
+  quizLeaderboardTime: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    width: 70,
+    textAlign: "right",
+  },
+  nextStageButtonContainer: {
+    padding: theme.spacing.md,
+    paddingBottom: 100, // Spazio per la tab bar
+  },
+
   // --- Stili Aggiornati e Corretti per CountdownScreen ---
   countdownContentContainer: {
     flex: 1, // Fondamentale: fa sì che il container occupi tutto lo schermo
@@ -394,16 +553,17 @@ export const styles = StyleSheet.create({
   },
   countdownWelcomeUser: {
     fontFamily: theme.fonts.primary.bold,
-    fontSize: 40, // Molto più grande per riempire lo spazio
+    fontSize: 30,
     color: theme.colors.textPrimary,
     lineHeight: 48,
+    marginBottom: 10,
   },
   countdownInfoCard: {
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.lg,
     paddingVertical: theme.spacing.lg, // Aggiunto padding verticale
     paddingHorizontal: theme.spacing.md,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -418,7 +578,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   countdownCardEventName: {
-    fontFamily: theme.fonts.secondary.bold,
+    fontFamily: theme.fonts.primary.extraBold,
     fontSize: 32,
     color: theme.colors.accentPrimary,
     marginVertical: theme.spacing.xs,
@@ -573,6 +733,7 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.regular,
     marginBottom: theme.spacing.md,
   },
+
   // --- Schermata Team ---
   teamCard: {
     backgroundColor: theme.colors.cardBackground,
@@ -818,15 +979,37 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   clueItem: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
     marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.lg,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  clueIcon: {
-    marginRight: theme.spacing.md,
+  clueHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+  },
+  clueTitle: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 18,
+    color: theme.colors.textPrimary,
+    marginLeft: theme.spacing.sm,
+  },
+  clueText: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 24,
+  },
+  clueImage: {
+    width: "100%",
+    borderRadius: theme.radius.sm,
+    marginTop: theme.spacing.md,
   },
 });

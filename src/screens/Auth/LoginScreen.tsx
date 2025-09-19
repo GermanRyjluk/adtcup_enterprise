@@ -132,76 +132,76 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   }, [email, password, isLoginView, navigation, modal]);
 
-  const handleGoogleLogin = useCallback(async () => {
-    if (isExpoGo || !GoogleSignin) {
-      modal?.showModal({
-        type: "info",
-        title: "Info",
-        message: "Il login con Google è disponibile solo nell'app installata.",
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
-      const { idToken } = await GoogleSignin.signIn();
-      if (!idToken) throw new Error("Token ID di Google non ricevuto.");
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, googleCredential);
-    } catch (error: any) {
-      if (error.code !== "12501") {
-        console.error("Google Sign-In Error", error);
-        modal?.showModal({
-          type: "error",
-          title: "Errore Google",
-          message: "Impossibile completare l'accesso con Google.",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [modal]);
+  // const handleGoogleLogin = useCallback(async () => {
+  //   if (isExpoGo || !GoogleSignin) {
+  //     modal?.showModal({
+  //       type: "info",
+  //       title: "Info",
+  //       message: "Il login con Google è disponibile solo nell'app installata.",
+  //     });
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   try {
+  //     await GoogleSignin.hasPlayServices({
+  //       showPlayServicesUpdateDialog: true,
+  //     });
+  //     const { idToken } = await GoogleSignin.signIn();
+  //     if (!idToken) throw new Error("Token ID di Google non ricevuto.");
+  //     const googleCredential = GoogleAuthProvider.credential(idToken);
+  //     await signInWithCredential(auth, googleCredential);
+  //   } catch (error: any) {
+  //     if (error.code !== "12501") {
+  //       console.error("Google Sign-In Error", error);
+  //       modal?.showModal({
+  //         type: "error",
+  //         title: "Errore Google",
+  //         message: "Impossibile completare l'accesso con Google.",
+  //       });
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [modal]);
 
-  const handleAppleLogin = useCallback(async () => {
-    if (isExpoGo || !AppleAuthentication) {
-      modal?.showModal({
-        type: "info",
-        title: "Info",
-        message: "Il login con Apple è disponibile solo nell'app installata.",
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      const appleCredential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      const { identityToken } = appleCredential;
-      if (identityToken) {
-        const provider = new OAuthProvider("apple.com");
-        const credential = provider.credential({ idToken: identityToken });
-        await signInWithCredential(auth, credential);
-      } else {
-        throw new Error("Nessun identityToken ricevuto da Apple");
-      }
-    } catch (error: any) {
-      if (error.code !== "ERR_REQUEST_CANCELED") {
-        console.error("Apple Sign-In Error", error);
-        modal?.showModal({
-          type: "error",
-          title: "Errore Apple",
-          message: "Impossibile completare l'accesso con Apple.",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [modal]);
+  // const handleAppleLogin = useCallback(async () => {
+  //   if (isExpoGo || !AppleAuthentication) {
+  //     modal?.showModal({
+  //       type: "info",
+  //       title: "Info",
+  //       message: "Il login con Apple è disponibile solo nell'app installata.",
+  //     });
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   try {
+  //     const appleCredential = await AppleAuthentication.signInAsync({
+  //       requestedScopes: [
+  //         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+  //         AppleAuthentication.AppleAuthenticationScope.EMAIL,
+  //       ],
+  //     });
+  //     const { identityToken } = appleCredential;
+  //     if (identityToken) {
+  //       const provider = new OAuthProvider("apple.com");
+  //       const credential = provider.credential({ idToken: identityToken });
+  //       await signInWithCredential(auth, credential);
+  //     } else {
+  //       throw new Error("Nessun identityToken ricevuto da Apple");
+  //     }
+  //   } catch (error: any) {
+  //     if (error.code !== "ERR_REQUEST_CANCELED") {
+  //       console.error("Apple Sign-In Error", error);
+  //       modal?.showModal({
+  //         type: "error",
+  //         title: "Errore Apple",
+  //         message: "Impossibile completare l'accesso con Apple.",
+  //       });
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [modal]);
 
   return (
     <KeyboardAvoidingView
@@ -215,7 +215,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             {isLoginView ? "Bentornato!" : "Crea un Account"}
           </Text>
 
-          {!isExpoGo && (
+          {/* {!isExpoGo && (
             <>
               <AnimatedPressable
                 style={styles.socialButton}
@@ -241,7 +241,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 </AnimatedPressable>
               )}
             </>
-          )}
+          )} */}
 
           <Text style={styles.separatorText}>oppure</Text>
 
