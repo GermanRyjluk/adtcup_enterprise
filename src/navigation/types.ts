@@ -1,6 +1,9 @@
-import type { StackScreenProps } from "@react-navigation/stack";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
+import type {
+  CompositeScreenProps,
+  NavigatorScreenParams,
+} from "@react-navigation/native";
+import type { StackScreenProps } from "@react-navigation/stack";
 
 /**
  * @file types.ts
@@ -41,6 +44,20 @@ export type MainStackParamList = {
   Clues: { riddleId: string }; // Passiamo l'ID dell'indovinello corrente
 };
 
+export type AdminTabParamList = {
+  AdminDashboard: undefined;
+  AdminTeams: undefined;
+  AdminRiddles: undefined;
+  AdminLeaderboard: undefined;
+  AdminEventSettings: undefined;
+};
+
+export type AdminStackParamList = {
+  AdminTabs: NavigatorScreenParams<AdminTabParamList>;
+  Profile: undefined;
+  QuizLeaderboard: { riddleId: string; riddleTitle: string };
+};
+
 // --- Tipi per le Props delle Schermate ---
 // Questi tipi combinano le definizioni sopra con i tipi di React Navigation
 // per fornire `navigation` e `route` props completamente tipizzate.
@@ -65,3 +82,17 @@ export type GameTabScreenProps<T extends keyof GameTabParamList> =
     BottomTabScreenProps<GameTabParamList, T>,
     StackScreenProps<MainStackParamList>
   >;
+
+export type AdminStackNavigationProps<T extends keyof AdminStackParamList> =
+  StackScreenProps<AdminStackParamList, T>;
+
+export type AdminTabScreenProps<T extends keyof AdminTabParamList> =
+  CompositeScreenProps<
+    BottomTabScreenProps<AdminTabParamList, T>,
+    StackScreenProps<AdminStackParamList>
+  >;
+
+export type QuizLeaderboardScreenProps = StackScreenProps<
+  AdminStackParamList,
+  "QuizLeaderboard"
+>;

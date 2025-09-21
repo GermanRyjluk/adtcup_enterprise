@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { ModalContext, ModalOptions } from "../contexts/ModalContext";
+import React, { useCallback, useMemo, useState } from "react";
 import { CustomModal } from "../components/CustomModal";
+import { ModalContext, ModalOptions } from "../contexts/ModalContext";
 
 /**
  * @interface ModalProviderProps
@@ -26,6 +26,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     message: "",
     type: "info",
     persistent: false,
+    actions: [],
   });
 
   // Funzione per nascondere il modal, da chiamare manualmente
@@ -35,7 +36,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
 
   const showModal = useCallback(
     (options: ModalOptions) => {
-      setModalState({ ...options, visible: true });
+      setModalState({ visible: true, ...options });
 
       // Se il modal NON è persistente, si chiude da solo dopo 2.5 secondi
       if (!options.persistent) {
@@ -66,6 +67,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         type={modalState.type}
         persistent={modalState.persistent} // Passiamo la nuova prop
         onClose={hideModal} // Passiamo la funzione per chiudere
+        actions={modalState.actions}
       />
     </ModalContext.Provider>
   );

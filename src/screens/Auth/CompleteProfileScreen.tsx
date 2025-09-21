@@ -1,31 +1,30 @@
-import React, { useState, useCallback, useContext } from "react";
 import {
-  Text,
-  View,
-  ScrollView,
+  collection,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import React, { useCallback, useContext, useState } from "react";
+import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
-  Animated,
+  ScrollView,
+  Text,
 } from "react-native";
-import {
-  doc,
-  setDoc,
-  query,
-  collection,
-  where,
-  getDocs,
-  serverTimestamp,
-} from "firebase/firestore";
 
 // --- Importazioni Locali ---
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { StyledInput } from "../../components/StyledInput";
 import { db } from "../../config/firebaseConfig";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ModalContext } from "../../contexts/ModalContext";
 import { useFadeIn } from "../../hooks/animationHooks";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { StyledInput } from "../../components/StyledInput";
 
 const CompleteProfileScreen: React.FC = () => {
   // Stato per i campi del form
@@ -92,9 +91,9 @@ const CompleteProfileScreen: React.FC = () => {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         username: username.trim(),
-        age: parseInt(age, 10), // Converte l'età in numero
-        createdAt: serverTimestamp(), // Aggiunge il timestamp di creazione
-        role: "user", // Ruolo di default
+        age: parseInt(age, 10),
+        createdAt: serverTimestamp(),
+        role: "user",
       });
 
       // 4. Aggiorna lo stato globale dell'app per procedere

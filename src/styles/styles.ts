@@ -227,6 +227,33 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.bold,
     fontSize: 16,
   },
+  modalActionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: theme.spacing.lg,
+    width: "100%",
+  },
+  modalActionButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radius.full,
+    marginHorizontal: theme.spacing.sm,
+    alignItems: "center",
+  },
+  modalCancelButton: {
+    backgroundColor: theme.colors.inputBackground,
+  },
+  modalConfirmButton: {
+    backgroundColor: theme.colors.accentPrimary,
+  },
+  modalDestructiveButton: {
+    backgroundColor: theme.colors.error,
+  },
+  modalActionButtonText: {
+    color: theme.colors.textPrimary,
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 16,
+  },
 
   // --- Navigazione ---
   tabBar: {
@@ -1027,5 +1054,64 @@ export const styles = StyleSheet.create({
     width: "100%",
     borderRadius: theme.radius.sm,
     marginTop: theme.spacing.md,
+  },
+
+  // --- STILI ADMIN ---
+  adminSectionTitle: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 20,
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  statCardContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  statCard: {
+    backgroundColor: theme.colors.cardBackground,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    marginHorizontal: theme.spacing.sm,
+  },
+  statCardValue: {
+    fontFamily: theme.fonts.primary.extraBold,
+    fontSize: 24,
+    color: theme.colors.accentPrimary,
+    marginVertical: theme.spacing.xs,
+  },
+  statCardLabel: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+  },
+  teamProgressRow: {
+    backgroundColor: theme.colors.cardBackground,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  teamProgressName: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  teamProgressInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  teamProgressText: {
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
 });

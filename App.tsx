@@ -11,6 +11,7 @@ import { startGameForUser } from "./src/api/userService";
 import { auth, db } from "./src/config/firebaseConfig";
 import { AuthContext } from "./src/contexts/AuthContext";
 import {
+  AdminStack,
   AuthStack,
   MainStack,
   PreGameStack,
@@ -51,6 +52,7 @@ export default function App() {
     isGameStarted: boolean;
     teamId: number;
     currentEventId: string | null;
+    role: string | null;
   }>({
     isLoading: true,
     user: null,
@@ -58,6 +60,7 @@ export default function App() {
     isGameStarted: false,
     teamId: 0,
     currentEventId: null,
+    role: null,
   });
 
   const checkUserStatus = async (firebaseUser: User | null) => {
@@ -73,6 +76,7 @@ export default function App() {
           isGameStarted: userData.isGameStarted ?? false,
           teamId: userData.teamId ?? null,
           currentEventId: userData.currentEventId ?? null,
+          role: userData.role || "user",
         });
       } else {
         setAuthState({
@@ -82,6 +86,7 @@ export default function App() {
           isGameStarted: false,
           teamId: 0,
           currentEventId: null,
+          role: null,
         });
       }
     } else {
@@ -92,6 +97,7 @@ export default function App() {
         isGameStarted: false,
         teamId: 0,
         currentEventId: null,
+        role: null,
       });
     }
   };
@@ -108,6 +114,7 @@ export default function App() {
       isProfileComplete: authState.isProfileComplete,
       teamId: authState.teamId,
       currentEventId: authState.currentEventId,
+      role: authState.role,
       startGame: async (eventId: string) => {
         if (authState.user) {
           try {
@@ -207,7 +214,12 @@ export default function App() {
       );
     }
 
-    // 4. Utente pronto per l'esperienza di gioco.
+    // 4. Se l'utente è un admin, mostra lo stack admin
+    if (authContextValue.role === "admin") {
+      return <AdminStack />;
+    }
+
+    // 5. Utente pronto per l'esperienza di gioco.
     if (!authState.isGameStarted) {
       return <PreGameStack />;
     }

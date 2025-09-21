@@ -1,23 +1,23 @@
-import React from "react";
+import { Feather as Icon } from "@expo/vector-icons";
+import {
+  BottomTabBarButtonProps,
+  createBottomTabNavigator,
+} from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
 import {
   createStackNavigator,
   StackNavigationProp,
 } from "@react-navigation/stack";
-import {
-  createBottomTabNavigator,
-  BottomTabBarButtonProps,
-} from "@react-navigation/bottom-tabs";
-import { View, TouchableOpacity } from "react-native";
-import { Feather as Icon } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import React from "react";
+import { TouchableOpacity } from "react-native";
 
 // --- Importazione Tipi di Navigazione ---
 import {
   AuthStackParamList,
-  PreGameStackParamList,
-  MainStackParamList,
   GameTabParamList,
+  MainStackParamList,
+  PreGameStackParamList,
 } from "./types";
 
 // --- Importazione Schermate ---
@@ -31,16 +31,20 @@ import EventDetailsScreen from "../screens/PreGame/EventDetailsScreen";
 import ProfileScreen from "../screens/PreGame/ProfileScreen";
 
 // Game
+import CluesScreen from "../screens/Game/CluesScreen"; // Da creare
 import GameScreen from "../screens/Game/GameScreen";
-import TeamScreen from "../screens/Game/TeamScreen";
 import LeaderboardScreen from "../screens/Game/LeaderboardScreen";
 import ManualScreen from "../screens/Game/ManualScreen";
 import ScannerModal from "../screens/Game/ScannerModal";
-import CluesScreen from "../screens/Game/CluesScreen"; // Da creare
+import TeamScreen from "../screens/Game/TeamScreen";
+
+//Admin
+import { AdminStack } from "./AdminNavigator";
+export { AdminStack };
 
 // --- Importazioni Componenti e Tema ---
-import { theme } from "../theme/theme";
 import { styles } from "../styles/styles";
+import { theme } from "../theme/theme";
 
 // --- Navigatori ---
 const AuthStackNav = createStackNavigator<AuthStackParamList>();

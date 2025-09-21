@@ -1,5 +1,5 @@
-import { createContext } from "react";
 import { User } from "firebase/auth";
+import { createContext } from "react";
 
 /**
  * @interface AuthContextType
@@ -12,7 +12,6 @@ export interface AuthContextType {
    * È `null` se l'utente non è loggato.
    */
   user: User | null;
-  a;
   /**
    * Un flag booleano che indica se l'utente ha completato il suo profilo
    * creando il documento corrispondente su Firestore.
@@ -28,6 +27,10 @@ export interface AuthContextType {
    * ID dell'evento attuale al quale sta partecipando l'utente
    */
   currentEventId: string | null;
+  /**
+   * Ruolo dell'utente all'interno dell'app
+   */
+  role: "admin" | "user" | null;
 
   refreshAuthState: () => Promise<void>;
 

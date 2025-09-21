@@ -7,8 +7,13 @@ import { createContext } from "react";
 export interface ModalOptions {
   title: string;
   message: string;
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "confirmation";
   persistent?: boolean;
+  actions?: {
+    text: string;
+    style?: "default" | "destructive";
+    onPress: () => void;
+  }[];
 }
 
 /**
