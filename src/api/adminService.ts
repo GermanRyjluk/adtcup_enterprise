@@ -13,6 +13,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   Unsubscribe,
   updateDoc,
   where,
@@ -157,7 +158,6 @@ export const adminGetUsers = async (
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
-
 /**
  * Assegna un utente a un team e un utente a un team, aggiornando entrambi i documenti.
  * @param eventId L'ID dell'evento.
@@ -169,13 +169,8 @@ export const adminAssignUserToTeam = async (
   teamId: string,
   userId: string
 ): Promise<void> => {
-  const batch = writeBatch(db);
-
-  // Riferimento al documento dell'utente
   const userDocRef = doc(db, "users", userId);
-  batch.update(userDocRef, { teamId: teamId, currentEventId: eventId });
-
-  await batch.commit();
+  await updateDoc(userDocRef, { teamId: teamId, currentEventId: eventId });
 };
 
 /**
@@ -190,6 +185,31 @@ export const adminRemoveUserFromTeam = async (
     teamId: null,
     currentEventId: null,
   });
+};
+
+/**
+ * Ascolta tutti gli utenti.
+ * @param callback La funzione da eseguire con la lista degli utenti.
+ */
+export const listenToUsers = (
+  callback: (users: DocumentData[]) => void
+): Unsubscribe => {
+  const usersRef = collection(db, "users");
+  const q = query(usersRef, orderBy("username", "asc"));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const usersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(usersData);
+    },
+    (error) => {
+      console.error("Errore nell'ascolto degli utenti:", error);
+      callback([]);
+    }
+  );
 };
 
 export interface QuizData extends DocumentData {
@@ -474,4 +494,38 @@ export const assignPointsInBatch = async (
 
   // 4. Esegui tutte le operazioni nel batch in modo atomico.
   await batch.commit();
+};
+
+/**
+ * Ascolta gli utenti registrati a partire da una certa data.
+ * @param date La data di inizio da cui filtrare.
+ * @param callback La funzione da eseguire con la lista degli utenti.
+ */
+export const listenToUsersRegisteredAfter = (
+  date: Date,
+  callback: (users: DocumentData[]) => void
+): Unsubscribe => {
+  const usersRef = collection(db, "users");
+  const startDate = Timestamp.fromDate(date); // Converti la data in Timestamp di Firestore
+
+  const q = query(
+    usersRef,
+    where("createdAt", ">=", startDate),
+    orderBy("createdAt", "desc")
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const usersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(usersData);
+    },
+    (error) => {
+      console.error("Errore nell'ascolto degli utenti:", error);
+      callback([]);
+    }
+  );
 };

@@ -1,5 +1,6 @@
 import { Feather as Icon } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import * as Clipboard from "expo-clipboard";
 import { DocumentData, Unsubscribe } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -262,6 +263,17 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({
     setField("questions", newQuestions);
   };
 
+  // Funzione per copiare il testo e mostrare un feedback
+  const copyToClipboard = async (text: string) => {
+    if (!text) return; // Non fare nulla se il testo è vuoto
+    await Clipboard.setStringAsync(text);
+    modal?.showModal({
+      type: "success",
+      title: "Copiato!",
+      message: `L'ID "${text}" è stato copiato negli appunti.`,
+    });
+  };
+
   return (
     <>
       <ScrollView style={adminStyles.adminContainer}>
@@ -272,13 +284,27 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({
           </Text>
           <View style={adminStyles.adminRow}>
             <Text style={adminStyles.adminLabel}>Quiz ID</Text>
-            <TextInput
-              style={adminStyles.adminInput}
-              value={quizData.id}
-              onChangeText={(val) => setField("id", val)}
-              placeholder="es. 1, 2, 3a..."
-              editable={!initialData} // L'ID non è modificabile
-            />
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
+              <TextInput
+                style={[adminStyles.adminInput, { flex: 1 }]}
+                value={quizData.id}
+                onChangeText={(val) => setField("id", val)}
+                placeholder="es. 1, 2, 3a..."
+                editable={!initialData}
+              />
+              <TouchableOpacity
+                onPress={() => copyToClipboard(quizData.id)}
+                style={{ paddingLeft: theme.spacing.md }}
+              >
+                <Icon
+                  name="copy"
+                  size={22}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={adminStyles.adminRow}>
             <Text style={adminStyles.adminLabel}>Tipo Quiz</Text>
