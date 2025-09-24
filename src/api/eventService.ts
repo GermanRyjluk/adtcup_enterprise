@@ -9,6 +9,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
@@ -106,4 +107,12 @@ export const getUpcomingEvent = async (): Promise<{
     console.error("Errore nel recupero dell'evento imminente:", error);
     return null;
   }
+};
+
+export const updateEventDetails = async (
+  eventId: string,
+  data: DocumentData
+): Promise<void> => {
+  const eventDocRef = doc(db, "events", eventId);
+  await updateDoc(eventDocRef, data);
 };

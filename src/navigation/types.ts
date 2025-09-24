@@ -42,6 +42,7 @@ export type MainStackParamList = {
   GameTabs: { screen: keyof GameTabParamList }; // Permette di navigare a una tab specifica
   ScannerModal: undefined;
   Clues: { riddleId: string }; // Passiamo l'ID dell'indovinello corrente
+  TeamDetail: { teamId: string };
 };
 
 export type AdminTabParamList = {

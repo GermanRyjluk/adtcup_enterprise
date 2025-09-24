@@ -158,6 +158,9 @@ const QuizLeaderboardScreen: React.FC<QuizLeaderboardScreenProps> = ({
       <Text style={adminStyles.leaderboardPosition}>{index + 1}</Text>
       <View style={adminStyles.adminListItemContent}>
         <Text style={adminStyles.adminListItemTitle}>{item.teamName}</Text>
+        <Text style={[adminStyles.adminListItemSubtitle, { marginBottom: 5 }]}>
+          Tempo: {item.durationSeconds}s
+        </Text>
         <Text style={adminStyles.adminListItemSubtitle}>
           Punti attuali: {item.currentScore}
         </Text>

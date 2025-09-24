@@ -529,3 +529,16 @@ export const listenToUsersRegisteredAfter = (
     }
   );
 };
+
+/**
+ * Aggiorna i dati di un evento specifico.
+ * @param eventId L'ID dell'evento.
+ * @param data I dati da modificare.
+ */
+export const updateEvent = async (
+  eventId: string,
+  data: Partial<DocumentData>
+): Promise<void> => {
+  const eventDocRef = doc(db, "events", eventId);
+  await updateDoc(eventDocRef, data);
+};

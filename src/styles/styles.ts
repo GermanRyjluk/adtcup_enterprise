@@ -99,6 +99,7 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.inputBackground,
     borderRadius: theme.radius.md,
     marginBottom: theme.spacing.md,
@@ -582,8 +583,9 @@ export const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   countdownContentContainer: {
-    flex: 1, // Fondamentale: fa sì che il container occupi tutto lo schermo
-    justifyContent: "space-between", // Distribuisce lo spazio verticalmente
+    flexGrow: 1,
+    justifyContent: "space-between",
+    paddingBottom: theme.spacing.lg,
   },
   welcomeContainer: {
     paddingHorizontal: theme.spacing.lg,
@@ -591,7 +593,7 @@ export const styles = StyleSheet.create({
   },
   countdownWelcome: {
     fontFamily: theme.fonts.primary.regular,
-    fontSize: 24, // Leggermente più grande
+    fontSize: 24,
     color: theme.colors.textSecondary,
   },
   countdownWelcomeUser: {
@@ -633,11 +635,11 @@ export const styles = StyleSheet.create({
   },
   countdownTimerBlock: {
     alignItems: "center",
-    marginHorizontal: theme.spacing.sm,
+    marginHorizontal: theme.spacing.xs,
   },
   countdownTimerValue: {
     fontFamily: theme.fonts.primary.extraBold,
-    fontSize: 48,
+    fontSize: 42,
     color: theme.colors.accentPrimary,
   },
   countdownTimerUnit: {
@@ -650,7 +652,7 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.md,
     padding: theme.spacing.lg, // Più padding
-    width: SCREEN_WIDTH * 0.55, // Card più grandi
+    width: SCREEN_WIDTH * 0.45, // Card più grandi
     marginRight: theme.spacing.md,
     alignItems: "center",
     justifyContent: "center",
@@ -787,10 +789,18 @@ export const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.lg,
   },
   teamHeaderContainer: {
-    height: SCREEN_HEIGHT * 0.38, // Occupa il 30% dell'altezza dello schermo
+    height: SCREEN_HEIGHT * 0.38,
     backgroundColor: theme.colors.cardBackground,
     justifyContent: "center",
     alignItems: "center",
+  },
+  downloadButton: {
+    position: "absolute",
+    bottom: theme.spacing.md + 20,
+    right: theme.spacing.md,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.full,
   },
   teamHeaderImage: {
     width: "100%",
@@ -838,6 +848,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     paddingTop: theme.spacing.md,
     paddingBlock: theme.spacing.sm,
+    minHeight: 50,
   },
   teamNameInput: {
     fontFamily: theme.fonts.secondary.bold,
@@ -847,7 +858,7 @@ export const styles = StyleSheet.create({
   },
   teamNameEditIcon: {
     marginLeft: theme.spacing.sm,
-    paddingTop: 6, // Allinea l'icona verticalmente con il testo grande
+    paddingTop: 6,
   },
   captainOnlyText: {
     fontFamily: theme.fonts.primary.regular,
@@ -875,6 +886,14 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.medium,
     fontSize: 16,
   },
+  sectionTitleWithSpacing: {
+    fontFamily: theme.fonts.primary.bold,
+    fontSize: 22,
+    color: theme.colors.textPrimary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  },
   // --- Schermata Classifica ---
   leaderboardRow: {
     flexDirection: "row",
@@ -885,9 +904,13 @@ export const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
     marginHorizontal: theme.spacing.lg,
   },
-  leaderboardRowTop: {
-    // transform: [{ scale: 1.5 }],
-    // marginVertical: theme.spacing.sm,
+  leaderboardScore: {
+    color: theme.colors.textSecondary,
+    fontFamily: theme.fonts.primary.regular,
+    fontSize: 14,
+  },
+  leaderboardChevron: {
+    marginLeft: theme.spacing.sm,
   },
   leaderboardRowFirst: {
     backgroundColor: "rgba(255, 193, 7, 0.45)",
@@ -938,35 +961,35 @@ export const styles = StyleSheet.create({
     fontFamily: theme.fonts.primary.regular,
     fontSize: 14,
   },
-  // --- Schermata Manuale ---
-  manualCard: {
+  // --- Schermata Manuale (Accordion) ---
+  manualAccordionItem: {
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.lg,
-    margin: theme.spacing.sm,
-    width: SCREEN_WIDTH / 2 - theme.spacing.md * 2, // Calcola la larghezza per due colonne con margini
-    alignItems: "center",
-    justifyContent: "center",
-    aspectRatio: 1, // Mantiene la card quadrata
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    marginBottom: theme.spacing.md,
+    overflow: "hidden", // Nasconde il contenuto quando collassato
   },
-  manualCardTitle: {
+  manualAccordionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  manualAccordionTitle: {
+    flex: 1,
     fontFamily: theme.fonts.primary.bold,
     fontSize: 18,
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing.md,
-    textAlign: "center",
+    marginLeft: theme.spacing.md,
   },
-  manualCardDescription: {
+  manualAccordionContent: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    paddingTop: theme.spacing.xs,
+  },
+  manualAccordionDescription: {
     fontFamily: theme.fonts.primary.regular,
-    fontSize: 12,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginTop: theme.spacing.xs,
+    lineHeight: 22,
   },
   // --- Schermata Scanner Modale ---
   scannerContainer: {

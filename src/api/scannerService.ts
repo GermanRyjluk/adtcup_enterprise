@@ -1,9 +1,9 @@
 import {
   doc,
   getDoc,
-  writeBatch,
   serverTimestamp,
-  increment,
+  Timestamp,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 
@@ -27,7 +27,11 @@ export const verifyQRCode = async (
     if (!teamDocSnap.exists()) {
       return { success: false, message: "Dati del team non trovati." };
     }
-    const { currentRiddleIndex, name: teamName } = teamDocSnap.data();
+    const {
+      currentRiddleIndex,
+      name: teamName,
+      lastScanTime,
+    } = teamDocSnap.data();
 
     // --- 2. Verifica se il QR code è quello corretto ---
     const currentQuizDocRef = doc(
@@ -57,6 +61,13 @@ export const verifyQRCode = async (
     const batch = writeBatch(db);
     const scanTime = serverTimestamp();
 
+    // --- Calcola il tempo impiegato in secondi ---
+    const completionTimestamp = Timestamp.now();
+    let durationSeconds = 0;
+    if (lastScanTime instanceof Timestamp) {
+      durationSeconds = completionTimestamp.seconds - lastScanTime.seconds;
+    }
+
     // Aggiorna il team
     batch.update(teamDocRef, {
       currentRiddleIndex: scannedQuizId,
@@ -76,7 +87,8 @@ export const verifyQRCode = async (
     batch.set(leaderboardDocRef, {
       teamId,
       teamName,
-      scanTime,
+      scanTime: completionTimestamp,
+      durationSeconds,
     });
 
     await batch.commit();

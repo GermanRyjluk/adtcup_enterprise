@@ -1,3 +1,4 @@
+// src/screens/PreGame/CountdownScreen.tsx
 import { Feather as Icon } from "@expo/vector-icons";
 import { DocumentData } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import {
   Animated,
   FlatList,
   Image,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -50,11 +52,6 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
   });
 
   const fadeInAnim = useFadeIn();
-
-  // Funzione per popolare il database velocemente
-  // useEffect(() => {
-  //   populateManualTips("AurmHFUxjqy7UxmXO38v");
-  // }, []);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -111,12 +108,10 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
     );
   }
 
-  // Estrai i consigli utili dai dati dell'evento, con un fallback a un array vuoto
   const helpfulTips = event?.data?.helpfulTips || [];
 
   return (
-    <View style={styles.countdownContentContainer}>
-      {/* --- Sezione Superiore --- */}
+    <ScrollView contentContainerStyle={styles.countdownContentContainer}>
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logoTextPart}>ADT</Text>
@@ -137,58 +132,58 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
         </Text>
       </Animated.View>
 
-      {/* --- Sezione Centrale (si espande per riempire lo spazio) --- */}
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        {event ? (
-          <Animated.View style={fadeInAnim}>
-            <View style={styles.countdownInfoCard}>
-              <Text style={styles.countdownCardText}>Il prossimo evento</Text>
-              <Text style={styles.countdownCardEventName}>
-                {event.data.name}
-              </Text>
-              <Text style={styles.countdownCardText}>inizia tra:</Text>
-              <View
-                style={[
-                  styles.countdownTimerContainer,
-                  { marginVertical: theme.spacing.md, alignSelf: "center" },
-                ]}
-              >
-                {Object.entries(countdown).map(([unit, value]) => (
-                  <View key={unit} style={styles.countdownTimerBlock}>
-                    <Text style={styles.countdownTimerValue}>
-                      {String(value).padStart(2, "0")}
-                    </Text>
-                    <Text style={styles.countdownTimerUnit}>{unit}</Text>
-                  </View>
-                ))}
-              </View>
-              <PrimaryButton
-                title="Dettagli Evento"
-                onPress={() =>
-                  navigation.navigate("EventDetails", { eventId: event.id })
-                }
-                icon="arrow-right"
-                style={{ alignSelf: "center", marginTop: theme.spacing.xl }}
-              />
+      {event ? (
+        <Animated.View style={fadeInAnim}>
+          <View style={styles.countdownInfoCard}>
+            <Text style={styles.countdownCardText}>Il prossimo evento</Text>
+            <Text
+              style={styles.countdownCardEventName}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {event.data.name}
+            </Text>
+            <Text style={styles.countdownCardText}>inizia tra:</Text>
+            <View
+              style={[
+                styles.countdownTimerContainer,
+                { marginVertical: theme.spacing.md, alignSelf: "center" },
+              ]}
+            >
+              {Object.entries(countdown).map(([unit, value]) => (
+                <View key={unit} style={styles.countdownTimerBlock}>
+                  <Text style={styles.countdownTimerValue}>
+                    {String(value).padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.countdownTimerUnit}>{unit}</Text>
+                </View>
+              ))}
             </View>
-          </Animated.View>
-        ) : (
-          <View style={styles.centeredContainer}>
-            <Text style={styles.countdownTitle}>
-              Nessun evento in programma al momento.
-            </Text>
-            <Text style={styles.bodyText}>
-              Torna a trovarci presto per nuove avventure!
-            </Text>
+            <PrimaryButton
+              title="Dettagli Evento"
+              onPress={() =>
+                navigation.navigate("EventDetails", { eventId: event.id })
+              }
+              icon="arrow-right"
+              style={{ alignSelf: "center", marginTop: theme.spacing.md }}
+            />
           </View>
-        )}
-      </View>
+        </Animated.View>
+      ) : (
+        <View style={styles.centeredContainer}>
+          <Text style={styles.countdownTitle}>
+            Nessun evento in programma al momento.
+          </Text>
+          <Text style={styles.bodyText}>
+            Torna a trovarci presto per nuove avventure!
+          </Text>
+        </View>
+      )}
 
-      {/* --- Sezione Inferiore --- */}
       {helpfulTips.length > 0 && (
         <View
           style={{
-            marginBottom: theme.spacing.lg,
+            marginTop: theme.spacing.xl,
             paddingHorizontal: theme.spacing.lg,
           }}
         >
@@ -207,7 +202,7 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({ navigation }) => {
           />
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 

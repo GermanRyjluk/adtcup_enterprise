@@ -78,7 +78,7 @@ const LocationComponent: React.FC<{ location: DocumentData }> = ({
   };
   return (
     <ScrollView>
-      <View style={styles.locationCard}>
+      <View style={[styles.locationCard, { marginBottom: 150 }]}>
         {location.photo && (
           <Image
             source={{ uri: location.photo }}
@@ -91,7 +91,7 @@ const LocationComponent: React.FC<{ location: DocumentData }> = ({
             style={styles.locationDescription}
             numberOfLines={isExpanded ? undefined : 4}
             onTextLayout={(e) => {
-              if (e.nativeEvent.lines.length > 4 && !canExpand)
+              if (e.nativeEvent.lines.length > 3 && !canExpand)
                 setCanExpand(true);
             }}
           >
@@ -553,12 +553,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View
-      style={[
-        styles.gameContainer,
-        { paddingBottom: currentRiddle.type === "riddle" ? 100 : 0 },
-      ]}
-    >
+    <View style={[styles.gameContainer]}>
       <GameHeader
         title={`Fase ${currentRiddle.currentRiddleNumber} di ${totalRiddles}`}
       />

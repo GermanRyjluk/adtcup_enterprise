@@ -1,3 +1,4 @@
+// src/navigation/AppNavigator.tsx
 import { Feather as Icon } from "@expo/vector-icons";
 import {
   BottomTabBarButtonProps,
@@ -31,7 +32,7 @@ import EventDetailsScreen from "../screens/PreGame/EventDetailsScreen";
 import ProfileScreen from "../screens/PreGame/ProfileScreen";
 
 // Game
-import CluesScreen from "../screens/Game/CluesScreen"; // Da creare
+import CluesScreen from "../screens/Game/CluesScreen";
 import GameScreen from "../screens/Game/GameScreen";
 import LeaderboardScreen from "../screens/Game/LeaderboardScreen";
 import ManualScreen from "../screens/Game/ManualScreen";
@@ -125,7 +126,7 @@ const CustomTabBarButton: React.FC<BottomTabBarButtonProps> = ({ onPress }) => {
   return (
     <TouchableOpacity
       style={{ top: -40, justifyContent: "center", alignItems: "center" }}
-      onPress={onPress}
+      onPress={() => navigation.navigate("ScannerModal")}
     >
       <LinearGradient
         colors={[theme.colors.accentPrimary, "#FFB300"]}
@@ -160,7 +161,7 @@ const GameTabs = () => (
     <Tab.Screen name="TeamTab" component={TeamScreen} />
     <Tab.Screen
       name="Scanner"
-      component={ScannerModal}
+      component={GameScreen}
       options={{
         tabBarButton: (props) => <CustomTabBarButton {...props} />,
       }}
@@ -196,5 +197,6 @@ export const MainStack = () => (
       }}
     />
     <MainStackNav.Screen name="Clues" component={CluesScreen} />
+    <MainStackNav.Screen name="TeamDetail" component={TeamScreen} />
   </MainStackNav.Navigator>
 );

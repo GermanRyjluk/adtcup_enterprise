@@ -4,7 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StatusBar } from "react-native";
+import { StatusBar } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 // --- Importazioni Locali ---
 import { startGameForUser } from "./src/api/userService";
@@ -44,7 +45,6 @@ export default function App() {
     Montserrat_800ExtraBold,
   });
 
-  // Stato unificato per gestire l'autenticazione
   const [authState, setAuthState] = useState<{
     isLoading: boolean;
     user: User | null;
@@ -84,7 +84,7 @@ export default function App() {
           isProfileComplete: false,
           isLoading: false,
           isGameStarted: false,
-          teamId: 0,
+          teamId: 1,
           currentEventId: null,
           role: null,
         });
@@ -95,7 +95,7 @@ export default function App() {
         isProfileComplete: false,
         isLoading: false,
         isGameStarted: false,
-        teamId: 0,
+        teamId: 1,
         currentEventId: null,
         role: null,
       });
@@ -107,7 +107,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Creiamo il valore per il contesto, ottimizzato con useMemo
   const authContextValue = useMemo(
     () => ({
       user: authState.user,
@@ -118,19 +117,18 @@ export default function App() {
       startGame: async (eventId: string) => {
         if (authState.user) {
           try {
-            // Chiama la funzione che aggiorna entrambi i documenti
-            await startGameForUser(authState.user.uid, eventId);
-
-            // Aggiorna lo stato locale per riflettere i cambiamenti e triggerare la navigazione
+            await startGameForUser(
+              authState.user.uid,
+              eventId,
+              authState.teamId
+            );
             setAuthState((prev) => ({
               ...prev,
               isGameStarted: true,
               currentEventId: eventId,
-              teamId: 0,
             }));
           } catch (error) {
             console.error("Errore durante l'avvio del gioco:", error);
-            // Qui puoi mostrare un errore all'utente con il tuo modal
           }
         }
       },
@@ -139,51 +137,34 @@ export default function App() {
       refreshAuthState: async () => {
         const currentUser = auth.currentUser;
         if (currentUser) {
-          await currentUser.reload(); // Prima ricarica i dati utente da Firebase
+          await currentUser.reload();
         }
-        await checkUserStatus(currentUser); // Poi esegui il nostro controllo completo
+        await checkUserStatus(currentUser);
       },
     }),
-
-    [authState] // Assicurati che authState sia nelle dipendenze
+    [authState]
   );
 
-  // Nascondi la splash screen quando il caricamento è terminato
   useEffect(() => {
     const hideSplashScreen = async () => {
-      if (!authState.isLoading) {
+      if (!authState.isLoading && fontsLoaded) {
         await SplashScreen.hideAsync();
       }
     };
     hideSplashScreen();
-  }, [authState.isLoading]);
+  }, [authState.isLoading, fontsLoaded]);
 
-  // Mostra una schermata di avvio durante il controllo iniziale
-  if (authState.isLoading) {
-    // return (
-    //   <View
-    //     style={[
-    //       styles.centeredContainer,
-    //       { backgroundColor: theme.colors.backgroundStart },
-    //     ]}
-    //   >
-    //     <Text style={styles.logoText}>ADT CUP</Text>
-    //   </View>
-    // );
+  if (authState.isLoading || !fontsLoaded) {
     return null;
   }
 
-  // --- Funzione per decidere quale stack di navigazione renderizzare ---
   const renderContent = () => {
     const user = authState.user;
 
-    // 1. Utente non loggato: mostra lo stack di autenticazione.
     if (!user) {
       return <AuthStack />;
     }
 
-    // 2. Utente loggato, ma email non verificata: mostra la schermata di verifica.
-    // user.emailVerified è una proprietà di Firebase User che indica lo stato di verifica.
     if (!user.emailVerified) {
       return (
         <Stack.Navigator
@@ -197,7 +178,6 @@ export default function App() {
       );
     }
 
-    // 3. Utente loggato e email verificata, ma profilo non completo: mostra la schermata di completamento.
     if (!authState.isProfileComplete) {
       return (
         <Stack.Navigator
@@ -214,12 +194,10 @@ export default function App() {
       );
     }
 
-    // 4. Se l'utente è un admin, mostra lo stack admin
     if (authContextValue.role === "admin") {
       return <AdminStack />;
     }
 
-    // 5. Utente pronto per l'esperienza di gioco.
     if (!authState.isGameStarted) {
       return <PreGameStack />;
     }
@@ -228,20 +206,22 @@ export default function App() {
   };
 
   return (
-    <LinearGradient
-      colors={[theme.colors.backgroundStart, theme.colors.backgroundEnd]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <StatusBar barStyle="light-content" />
-        <AuthContext.Provider value={authContextValue}>
-          <ModalProvider>
-            <NavigationContainer theme={navigationTheme}>
-              {renderContent()}
-            </NavigationContainer>
-          </ModalProvider>
-        </AuthContext.Provider>
-      </SafeAreaView>
-    </LinearGradient>
+    <SafeAreaProvider>
+      <LinearGradient
+        colors={[theme.colors.backgroundStart, theme.colors.backgroundEnd]}
+        style={{ flex: 1 }}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <StatusBar barStyle="light-content" />
+          <AuthContext.Provider value={authContextValue}>
+            <ModalProvider>
+              <NavigationContainer theme={navigationTheme}>
+                {renderContent()}
+              </NavigationContainer>
+            </ModalProvider>
+          </AuthContext.Provider>
+        </SafeAreaView>
+      </LinearGradient>
+    </SafeAreaProvider>
   );
 }

@@ -6,12 +6,14 @@ import {
   FlatList,
   Modal,
   SafeAreaView,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
+import { updateEventDetails } from "@/src/api/eventService";
 import {
   adminChangeTeamRiddle,
   adminUpdateTeamScore,
@@ -38,6 +40,7 @@ const AdminLeaderboardScreen: React.FC<Props> = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<DocumentData | null>(null);
   const [points, setPoints] = useState("");
+  const [isScoreboardVisible, setIsScoreboardVisible] = useState(false);
 
   useEffect(() => {
     if (!authContext?.currentEventId) {
@@ -175,6 +178,22 @@ const AdminLeaderboardScreen: React.FC<Props> = () => {
       }
     };
 
+    const toggleScoreboardVisibility = async (value: boolean) => {
+      if (!authContext?.currentEventId) return;
+      setIsScoreboardVisible(value);
+      try {
+        await updateEventDetails(authContext.currentEventId, {
+          isScoreboardVisible: value,
+        });
+      } catch (error) {
+        modal?.showModal({
+          type: "error",
+          title: "Errore",
+          message: "Impossibile aggiornare la visibilità della classifica.",
+        });
+      }
+    };
+
     return (
       <View style={[adminStyles.adminListItem, { flexDirection: "column" }]}>
         {/* Riga 1: Nome e Punteggio */}
@@ -263,6 +282,22 @@ const AdminLeaderboardScreen: React.FC<Props> = () => {
     );
   };
 
+  const toggleScoreboardVisibility = async (value: boolean) => {
+    if (!authContext?.currentEventId) return;
+    setIsScoreboardVisible(value);
+    try {
+      await updateEventDetails(authContext.currentEventId, {
+        isScoreboardVisible: value,
+      });
+    } catch (error) {
+      modal?.showModal({
+        type: "error",
+        title: "Errore",
+        message: "Impossibile aggiornare la visibilità della classifica.",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
@@ -273,7 +308,34 @@ const AdminLeaderboardScreen: React.FC<Props> = () => {
 
   return (
     <View style={styles.standardScreenContainer}>
-      <AdminHeader title="Gestione Classifica" />
+      <AdminHeader title="Gestione Classifica"></AdminHeader>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          margin: theme.spacing.lg,
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{
+            color: theme.colors.textSecondary,
+            fontSize: 16,
+            marginRight: 8,
+          }}
+        >
+          Classifica Pubblica
+        </Text>
+        <Switch
+          trackColor={{ false: "#767577", true: theme.colors.accentPrimary }}
+          thumbColor={
+            isScoreboardVisible ? theme.colors.backgroundEnd : "#f4f3f4"
+          }
+          ios_backgroundColor="#3e3e3e"
+          onValueChange={toggleScoreboardVisibility}
+          value={isScoreboardVisible}
+        />
+      </View>
       <FlatList
         data={teams}
         keyExtractor={(item) => item.id}

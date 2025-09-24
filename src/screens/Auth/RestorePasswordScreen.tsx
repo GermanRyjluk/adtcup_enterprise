@@ -1,25 +1,24 @@
-import React, { useState, useCallback, useContext } from "react";
-import {
-  Text,
-  View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
-  TouchableOpacity,
-} from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import { sendPasswordResetEmail } from "firebase/auth";
+import React, { useCallback, useContext, useState } from "react";
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 
 // --- Importazioni Locali ---
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { StyledInput } from "../../components/StyledInput";
 import { auth } from "../../config/firebaseConfig";
 import { ModalContext } from "../../contexts/ModalContext";
 import { useFadeIn } from "../../hooks/animationHooks";
+import { AuthNavigationProps } from "../../navigation/types";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { StyledInput } from "../../components/StyledInput";
-import { AuthNavigationProps } from "../../navigation/types";
 
 // Definiamo i tipi per le props del componente
 type RestorePasswordScreenProps = AuthNavigationProps<"RestorePassword">;
@@ -102,7 +101,6 @@ const RestorePasswordScreen: React.FC<RestorePasswordScreenProps> = ({
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
-            style={{ marginTop: theme.spacing.lg }}
           />
 
           <PrimaryButton

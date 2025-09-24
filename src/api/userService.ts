@@ -1,7 +1,8 @@
 import {
   doc,
-  getDoc,
   DocumentData,
+  getDoc,
+  serverTimestamp,
   updateDoc,
   writeBatch,
 } from "firebase/firestore";
@@ -64,24 +65,28 @@ export const updateUserBookingStatus = async (
  */
 export const startGameForUser = async (
   uid: string,
-  eventId: string
+  eventId: string,
+  teamId: number
 ): Promise<void> => {
   // 1. Crea un'operazione batch
   const batch = writeBatch(db);
 
   // 2. Definisci i riferimenti ai due documenti che dobbiamo modificare
   const userDocRef = doc(db, "users", uid);
-  const bookingDocRef = doc(db, "users", uid);
+  const teamDocRef = doc(db, "events", eventId, "teams", teamId.toString());
 
   // 3. Operazioni di aggiornamento al batch
-  // Operazione A: Aggiorna il profilo utente principale per impostare l'evento corrente
+  // Aggiorna il profilo utente principale per impostare l'evento corrente
+  // e indicare che il gioco è iniziato
   batch.update(userDocRef, {
     currentEventId: eventId,
+    isGameStarted: true,
   });
 
-  // Operazione B: Aggiorna il documento di prenotazione per indicare che il gioco è iniziato
-  batch.update(bookingDocRef, {
-    isGameStarted: true,
+  // Aggiorna il documento del team per indicare che hanno visualizzato
+  // il primo indizio e il gioco è iniziato
+  batch.update(teamDocRef, {
+    lastScanTime: serverTimestamp(),
   });
 
   // 4. Esegui il batch

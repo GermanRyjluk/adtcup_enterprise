@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useContext } from "react";
+// src/screens/Game/LeaderboardScreen.tsx
+import { Feather as Icon } from "@expo/vector-icons";
+import { DocumentData } from "firebase/firestore";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
   ActivityIndicator,
   Animated,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { DocumentData } from "firebase/firestore";
-import { Feather as Icon } from "@expo/vector-icons";
 
 // --- Importazioni Locali ---
-import { AuthContext } from "../../contexts/AuthContext";
-import { GameTabScreenProps } from "../../navigation/types";
+import { listenEventDetails } from "@/src/api/eventService";
+import { GameHeader } from "@/src/components/GameHeader";
 import { listenToLeaderboard } from "../../api/leaderboardService";
-import { getUserProfile } from "../../api/userService";
+import { AuthContext } from "../../contexts/AuthContext";
+import { useFadeIn } from "../../hooks/animationHooks";
+import { GameTabScreenProps } from "../../navigation/types";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { useFadeIn } from "../../hooks/animationHooks";
-import { getEventDetails, listenEventDetails } from "@/src/api/eventService";
-import { GameHeader } from "@/src/components/GameHeader";
 
 type LeaderboardScreenProps = GameTabScreenProps<"LeaderboardTab">;
 
@@ -27,7 +28,8 @@ const LeaderboardItem: React.FC<{
   item: DocumentData;
   index: number;
   isUserTeam: boolean;
-}> = ({ item, index, isUserTeam }) => {
+  onPress: () => void;
+}> = ({ item, index, isUserTeam, onPress }) => {
   const fadeIn = useFadeIn(500, index * 100);
   const position = index + 1;
 
@@ -56,51 +58,76 @@ const LeaderboardItem: React.FC<{
   };
 
   return (
-    <Animated.View style={rowStyles}>
-      <Text
-        style={[
-          styles.leaderboardPosition,
-          {
-            fontSize:
-              position == 1 ? 19 : position == 2 ? 18 : position == 3 ? 17 : 16,
-          },
-        ]}
-      >
-        {position}.
-      </Text>
-      {medalIcons[position] ? (
-        <View style={styles.leaderboardIconContainer}>
-          <Icon
-            name={medalIcons[position].name}
-            size={24}
-            color={medalIcons[position].color}
-          />
-        </View>
-      ) : null}
-      <Text
-        style={[
-          styles.leaderboardTeamName,
-          {
-            fontSize:
-              position == 1 ? 19 : position == 2 ? 18 : position == 3 ? 17 : 16,
-          },
-        ]}
-        numberOfLines={1}
-      >
-        {item.name}
-      </Text>
-      <Text
-        style={[
-          styles.leaderboardScore,
-          {
-            fontSize:
-              position == 1 ? 18 : position == 2 ? 16 : position == 3 ? 15 : 14,
-          },
-        ]}
-      >
-        {item.score} pts
-      </Text>
-    </Animated.View>
+    <TouchableOpacity onPress={onPress}>
+      <Animated.View style={rowStyles}>
+        <Text
+          style={[
+            styles.leaderboardPosition,
+            {
+              fontSize:
+                position == 1
+                  ? 19
+                  : position == 2
+                  ? 18
+                  : position == 3
+                  ? 17
+                  : 16,
+            },
+          ]}
+        >
+          {position}.
+        </Text>
+        {medalIcons[position] ? (
+          <View style={styles.leaderboardIconContainer}>
+            <Icon
+              name={medalIcons[position].name}
+              size={24}
+              color={medalIcons[position].color}
+            />
+          </View>
+        ) : null}
+        <Text
+          style={[
+            styles.leaderboardTeamName,
+            {
+              fontSize:
+                position == 1
+                  ? 19
+                  : position == 2
+                  ? 18
+                  : position == 3
+                  ? 17
+                  : 16,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {item.name}
+        </Text>
+        <Text
+          style={[
+            styles.leaderboardScore,
+            {
+              fontSize:
+                position == 1
+                  ? 18
+                  : position == 2
+                  ? 16
+                  : position == 3
+                  ? 15
+                  : 14,
+            },
+          ]}
+        >
+          {item.score} pts
+        </Text>
+        <Icon
+          name="chevron-right"
+          size={24}
+          color={theme.colors.textSecondary}
+        />
+      </Animated.View>
+    </TouchableOpacity>
   );
 };
 
@@ -168,6 +195,9 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                 item={item}
                 index={index}
                 isUserTeam={item.id === userTeamId}
+                onPress={() =>
+                  navigation.navigate("TeamDetail", { teamId: item.id })
+                }
               />
             )}
             contentContainerStyle={{ paddingBottom: 100 }}

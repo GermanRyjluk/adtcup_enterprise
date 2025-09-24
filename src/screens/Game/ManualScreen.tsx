@@ -1,73 +1,112 @@
-import React, { useState, useEffect, useContext } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Animated,
-  ActivityIndicator,
-} from "react-native";
+// src/screens/Game/ManualScreen.tsx
 import { Feather as Icon } from "@expo/vector-icons";
-import { DocumentData } from "firebase/firestore";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // --- Importazioni Locali ---
+import { GameHeader } from "@/src/components/GameHeader";
+import { getEventDetails } from "../../api/eventService";
 import { AuthContext } from "../../contexts/AuthContext";
 import { GameTabScreenProps } from "../../navigation/types";
-import { getEventDetails } from "../../api/eventService"; // Importiamo il servizio
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { useBounceIn } from "../../hooks/animationHooks";
-import { GameHeader } from "@/src/components/GameHeader";
 
 type ManualScreenProps = GameTabScreenProps<"ManualTab">;
 
-type ManualCardData = {
+type ManualItemData = {
   id: string;
   icon: keyof typeof Icon.glyphMap;
   title: string;
   description: string;
 };
 
-// Componente per la singola card (invariato)
-const ManualCardItem: React.FC<{ item: ManualCardData; index: number }> = ({
-  item,
-  index,
-}) => {
-  const anim = useBounceIn(600, index * 100);
+// --- Nuovo Componente Accordion Interattivo ---
+const ManualAccordionItem: React.FC<{ item: ManualItemData }> = ({ item }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const animationController = useRef(new Animated.Value(0)).current;
+
+  const toggleExpansion = () => {
+    const toValue = isExpanded ? 0 : 1;
+    Animated.timing(animationController, {
+      toValue: toValue,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false, // Necessario per animare l'altezza
+    }).start();
+    setIsExpanded(!isExpanded);
+  };
+
+  const rotateAnimation = animationController.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "90deg"],
+  });
+
+  const bodyHeight = animationController.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1000], // Un valore grande per permettere al contenuto di espandersi
+  });
+
   return (
-    <Animated.View style={[styles.manualCard, anim]}>
-      <Icon name={item.icon} size={40} color={theme.colors.accentPrimary} />
-      <Text style={styles.manualCardTitle}>{item.title}</Text>
-      <Text style={styles.manualCardDescription}>{item.description}</Text>
-    </Animated.View>
+    <View style={styles.manualAccordionItem}>
+      <TouchableOpacity
+        style={styles.manualAccordionHeader}
+        onPress={toggleExpansion}
+        activeOpacity={0.8}
+      >
+        <Icon name={item.icon} size={24} color={theme.colors.accentPrimary} />
+        <Text style={styles.manualAccordionTitle}>{item.title}</Text>
+        <Animated.View style={{ transform: [{ rotate: rotateAnimation }] }}>
+          <Icon
+            name="chevron-right"
+            size={24}
+            color={theme.colors.textSecondary}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+
+      <Animated.View style={{ maxHeight: bodyHeight, overflow: "hidden" }}>
+        <View style={styles.manualAccordionContent}>
+          <Text style={styles.manualAccordionDescription}>
+            {item.description}
+          </Text>
+        </View>
+      </Animated.View>
+    </View>
   );
 };
 
 const ManualScreen: React.FC<ManualScreenProps> = ({ navigation }) => {
   const authContext = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
-  const [manualCards, setManualCards] = useState<ManualCardData[]>([]);
+  const [manualItems, setManualItems] = useState<ManualItemData[]>([]);
 
   useEffect(() => {
     const fetchManualData = async () => {
-      // Assicurati che l'ID dell'evento sia disponibile nel contesto
       if (authContext?.currentEventId) {
         try {
           const eventData = await getEventDetails(authContext.currentEventId);
-          // Usiamo i "helpfulTips" dall'evento, con un fallback a un array vuoto
-          setManualCards(eventData?.manualTips || []);
+          setManualItems(eventData?.manualTips || []);
         } catch (error) {
           console.error("Errore nel caricamento del manuale:", error);
-          setManualCards([]); // In caso di errore, non mostrare nulla
+          setManualItems([]);
         } finally {
           setLoading(false);
         }
       } else {
-        setLoading(false); // Nessun evento in corso
+        setLoading(false);
       }
     };
 
     fetchManualData();
-  }, [authContext?.currentEventId]); // Ricarica i dati se l'evento cambia
+  }, [authContext?.currentEventId]);
 
   if (loading) {
     return (
@@ -80,15 +119,15 @@ const ManualScreen: React.FC<ManualScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.standardScreenContainer}>
       <GameHeader title="Manuale di Gioco" />
-      {manualCards.length > 0 ? (
+      {manualItems.length > 0 ? (
         <FlatList
-          data={manualCards}
+          data={manualItems}
           keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <ManualCardItem item={item} index={index} />
-          )}
-          numColumns={2}
-          contentContainerStyle={{ alignItems: "center", paddingBottom: 100 }}
+          renderItem={({ item }) => <ManualAccordionItem item={item} />}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: 100,
+          }}
         />
       ) : (
         <View style={styles.centeredContainer}>
