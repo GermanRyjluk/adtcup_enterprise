@@ -43,6 +43,7 @@ export type MainStackParamList = {
   ScannerModal: undefined;
   Clues: { riddleId: string }; // Passiamo l'ID dell'indovinello corrente
   TeamDetail: { teamId: string };
+  Profile: undefined;
 };
 
 export type AdminTabParamList = {

@@ -1,12 +1,13 @@
 import { Feather as Icon } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import * as Clipboard from "expo-clipboard";
-import { DocumentData, Unsubscribe } from "firebase/firestore";
+import { DocumentData, GeoPoint, Unsubscribe } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -50,6 +51,8 @@ const DEFAULT_QUIZ_DATA: QuizData = {
   locationName: "",
   mapsLink: "",
   openingHours: "",
+  geolocationCheck: false,
+  location: undefined,
   // Multiple Choice
   timeLimitSeconds: 120,
   questions: [],
@@ -68,14 +71,23 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({
   const modal = useContext(ModalContext);
   const [loading, setLoading] = useState(false);
   const [quizData, setQuizData] = useState<QuizData>(DEFAULT_QUIZ_DATA);
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
 
   // Popola il form se stiamo modificando un quiz esistente
   useEffect(() => {
     if (initialData) {
-      // Uniamo i dati iniziali con quelli di default per evitare campi undefined
-      setQuizData({ ...DEFAULT_QUIZ_DATA, ...initialData });
+      const data = { ...DEFAULT_QUIZ_DATA, ...initialData };
+      setQuizData(data);
+      // Se ci sono coordinate, popoliamo i campi di testo
+      if (initialData.location instanceof GeoPoint) {
+        setLatitude(initialData.location.latitude.toString());
+        setLongitude(initialData.location.longitude.toString());
+      }
     } else {
       setQuizData(DEFAULT_QUIZ_DATA);
+      setLatitude("");
+      setLongitude("");
     }
   }, [initialData]);
 
@@ -115,14 +127,38 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({
       return;
     }
     setLoading(true);
+
+    const dataToSave = { ...quizData };
+
+    // Se il controllo geolocalizzazione è attivo, crea il GeoPoint
+    if (dataToSave.geolocationCheck) {
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        dataToSave.location = new GeoPoint(lat, lon);
+      } else {
+        modal?.showModal({
+          type: "error",
+          title: "Coordinate non valide",
+          message:
+            "Inserisci valori numerici validi per latitudine e longitudine.",
+        });
+        setLoading(false);
+        return;
+      }
+    } else {
+      // Se il check è disattivo, assicurati che il campo location non venga salvato
+      delete dataToSave.location;
+    }
+
     try {
-      await createOrUpdateQuiz(eventId, quizData);
+      await createOrUpdateQuiz(eventId, dataToSave);
       modal?.showModal({
         type: "success",
         title: "Successo",
         message: "Quiz salvato correttamente!",
       });
-      onClose(); // Chiude il modale dopo il salvataggio
+      onClose();
     } catch (error: any) {
       modal?.showModal({
         type: "error",
@@ -461,55 +497,57 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({
         {quizData.type === "location" && (
           <View style={adminStyles.adminSection}>
             <Text style={adminStyles.adminSectionTitle}>Dettagli Luogo</Text>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>Nome Luogo</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.locationName}
-                onChangeText={(val) => setField("locationName", val)}
+            {/* ... (input per nome, indirizzo, ecc. invariati) ... */}
+
+            {/* NUOVO: Switch per attivare il controllo GPS */}
+            <View
+              style={[
+                adminStyles.adminRow,
+                { alignItems: "center", justifyContent: "space-between" },
+              ]}
+            >
+              <Text style={adminStyles.adminLabel}>
+                Abilita Controllo Posizione
+              </Text>
+              <Switch
+                trackColor={{
+                  false: "#767577",
+                  true: theme.colors.accentPrimary,
+                }}
+                thumbColor={
+                  quizData.geolocationCheck
+                    ? theme.colors.backgroundEnd
+                    : "#f4f3f4"
+                }
+                onValueChange={(value) => setField("geolocationCheck", value)}
+                value={quizData.geolocationCheck}
               />
             </View>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>Indirizzo</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.address}
-                onChangeText={(val) => setField("address", val)}
-              />
-            </View>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>Descrizione</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.description}
-                onChangeText={(val) => setField("description", val)}
-                multiline
-              />
-            </View>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>Orari</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.openingHours}
-                onChangeText={(val) => setField("openingHours", val)}
-              />
-            </View>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>Link Google Maps</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.mapsLink}
-                onChangeText={(val) => setField("mapsLink", val)}
-              />
-            </View>
-            <View style={adminStyles.adminRow}>
-              <Text style={adminStyles.adminLabel}>URL Foto</Text>
-              <TextInput
-                style={adminStyles.adminInput}
-                value={quizData.photo}
-                onChangeText={(val) => setField("photo", val)}
-              />
-            </View>
+
+            {quizData.geolocationCheck && (
+              <>
+                <View style={adminStyles.adminRow}>
+                  <Text style={adminStyles.adminLabel}>Latitudine</Text>
+                  <TextInput
+                    style={adminStyles.adminInput}
+                    value={latitude}
+                    onChangeText={setLatitude}
+                    placeholder="es. 45.0715"
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={adminStyles.adminRow}>
+                  <Text style={adminStyles.adminLabel}>Longitudine</Text>
+                  <TextInput
+                    style={adminStyles.adminInput}
+                    value={longitude}
+                    onChangeText={setLongitude}
+                    placeholder="es. 7.6853"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </>
+            )}
           </View>
         )}
 

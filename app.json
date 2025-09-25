@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "La tua posizione è necessaria per verificare che ti trovi nel punto di partenza corretto e per monitorare i tuoi progressi durante l'evento. Non verrà condivisa per altri scopi.",
         "NSCameraUsageDescription": "L'accesso alla fotocamera è necessario per scansionare i QR code degli indovinelli e avanzare nel gioco.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "L'app ha bisogno dell'accesso alla galleria per poter salvare la foto della tua squadra."
       },
       "bundleIdentifier": "com.ryyuuk.adtcupteams"
     },
@@ -23,7 +24,10 @@
         "backgroundColor": "#040037"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "package": "com.ryyuuk.adtcupteams"
     },
     "web": {

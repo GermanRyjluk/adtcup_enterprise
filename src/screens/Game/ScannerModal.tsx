@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Location from "expo-location";
+import React, { useContext, useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // --- Importazioni Locali ---
+import { GameState, listenToGameState } from "../../api/gameService";
+import { verifyQRCode } from "../../api/scannerService";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ModalContext } from "../../contexts/ModalContext";
 import { MainStackNavigationProps } from "../../navigation/types";
-import { verifyQRCode } from "../../api/scannerService";
-import { listenToGameState, GameState } from "../../api/gameService";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { theme } from "../../theme/theme";
 import { styles } from "../../styles/styles";
+import { theme } from "../../theme/theme";
 
 type ScannerModalProps = MainStackNavigationProps<"ScannerModal">;
 
@@ -19,9 +20,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
   const modal = useContext(ModalContext);
 
   const [gameState, setGameState] = useState<GameState | null>(null);
-  // Stato per i permessi della fotocamera
-  const [permission, requestPermission] = useCameraPermissions();
-  // Stato per sapere se un codice è già stato scansionato (per evitare scansioni multiple)
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -34,10 +33,23 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
 
   // Chiedi i permessi all'avvio del componente
   useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, [permission]);
+    (async () => {
+      // Chiedi il permesso per la fotocamera se non è già stato concesso
+      if (!cameraPermission?.granted) {
+        await requestCameraPermission();
+      }
+
+      // Chiedi il permesso per la localizzazione
+      const { status: locationStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      if (locationStatus !== "granted") {
+        Alert.alert(
+          "Permesso di Localizzazione",
+          "L'app ha bisogno di accedere alla tua posizione per verificare alcuni indovinelli. Per favore, abilitalo dalle impostazioni."
+        );
+      }
+    })();
+  }, [cameraPermission]);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     // Se stiamo già verificando o abbiamo già scansionato, ignora
@@ -46,13 +58,16 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
     setScanned(true);
     setIsVerifying(true);
 
-    if (!authContext?.user || !gameState) return;
+    if (!authContext?.user || !gameState) {
+      setIsVerifying(false);
+      return;
+    }
 
-    // Chiama il servizio per verificare il QR code
+    // Chiama il servizio per verificare il QR code (che ora include il controllo della posizione)
     const result = await verifyQRCode(
       authContext.teamId.toString(),
       gameState.currentEventId,
-      data // Usa i dati reali del QR code
+      data
     );
 
     if (result.success) {
@@ -61,20 +76,22 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
         title: "Corretto!",
         message: result.message,
       });
-      navigation.navigate("GameTab");
+      navigation.goBack();
     } else {
       modal?.showModal({
         type: "error",
         title: "Sbagliato!",
         message: result.message,
       });
+      // Permetti una nuova scansione dopo un breve ritardo
       setTimeout(() => setScanned(false), 2000);
     }
     setIsVerifying(false);
   };
 
   // --- Render condizionale in base ai permessi ---
-  if (!permission) {
+  if (!cameraPermission) {
+    // Schermata di caricamento mentre si attendono i permessi
     return (
       <View
         style={[
@@ -85,7 +102,8 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
     );
   }
 
-  if (!permission.granted) {
+  if (!cameraPermission.granted) {
+    // Schermata per richiedere esplicitamente i permessi della fotocamera
     return (
       <View
         style={[
@@ -96,7 +114,10 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ navigation }) => {
         <Text style={styles.scannerPermissionText}>
           Devi concedere l'accesso alla fotocamera per poter giocare.
         </Text>
-        <PrimaryButton title="Concedi Permesso" onPress={requestPermission} />
+        <PrimaryButton
+          title="Concedi Permesso"
+          onPress={requestCameraPermission}
+        />
       </View>
     );
   }

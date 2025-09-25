@@ -234,6 +234,8 @@ export interface QuizData extends DocumentData {
   sourceQuizId?: string;
   title?: string;
   totalQuestions?: number;
+  geolocationCheck?: boolean;
+  location?: GeoPoint;
 }
 
 /**

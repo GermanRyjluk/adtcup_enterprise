@@ -1,31 +1,31 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  Linking,
-  ActivityIndicator,
-  Animated,
-  Platform,
-  Dimensions,
-} from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { DocumentData, GeoPoint, Timestamp } from "firebase/firestore";
 import * as Location from "expo-location";
+import { DocumentData, GeoPoint, Timestamp } from "firebase/firestore";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Image,
+  Linking,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // --- Importazioni Locali ---
+import { getUserProfile } from "@/src/api/userService";
+import { DistanceIndicator } from "@/src/components/DistanceIndicator";
+import { ModalContext } from "@/src/contexts/ModalContext";
+import { getHaversineDistance } from "@/src/utils/locationHelper";
+import { getEventDetails, getTeamDetails } from "../../api/eventService";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
 import { PreGameNavigationProps } from "../../navigation/types";
-import { getEventDetails, getTeamDetails } from "../../api/eventService";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
-import { PrimaryButton } from "../../components/PrimaryButton";
-import { getUserProfile } from "@/src/api/userService";
-import { getHaversineDistance } from "@/src/utils/locationHelper";
-import { ModalContext } from "@/src/contexts/ModalContext";
-import { DistanceIndicator } from "@/src/components/DistanceIndicator";
 
 type EventDetailsScreenProps = PreGameNavigationProps<"EventDetails">;
 
@@ -201,6 +201,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
   };
 
   const isButtonDisabled =
+    distance === null ||
     !eventData?.isStarted ||
     (distance !== null && distance > DISTANCE_THRESHOLD);
 
