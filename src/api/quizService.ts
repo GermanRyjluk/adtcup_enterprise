@@ -14,7 +14,7 @@ import {
 import { db } from "../config/firebaseConfig";
 
 // Punteggio di fallback se non specificato nella domanda
-const DEFAULT_POINTS_PER_ANSWER = 100;
+const DEFAULT_POINTS_PER_ANSWER = 0;
 
 /**
  * Calcola il punteggio di un quiz, salva il risultato e fa avanzare il team.
@@ -58,14 +58,11 @@ export const submitMultipleChoiceAnswers = async (
     let correctAnswersCount = 0;
     let scoreGained = 0;
 
-    console.log(questions);
-
     questions.forEach((question) => {
       if (answers[question.id] === question.correctAnswerIndex) {
         correctAnswersCount++;
         scoreGained += parseInt(question.points) || DEFAULT_POINTS_PER_ANSWER;
       }
-      console.log("TP: " + scoreGained);
     });
 
     // Calcola il tempo impiegato in secondi

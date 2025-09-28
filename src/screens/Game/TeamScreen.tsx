@@ -12,6 +12,7 @@ import {
   Animated,
   FlatList,
   Image,
+  Linking,
   ScrollView,
   Text,
   TextInput,
@@ -21,6 +22,8 @@ import {
 
 // --- Importazioni Locali ---
 import { GameHeader } from "@/src/components/GameHeader";
+import * as FileSystem from "expo-file-system";
+import * as MediaLibrary from "expo-media-library";
 import {
   listenToTeamData,
   listenToTeamMembers,
@@ -171,7 +174,52 @@ const TeamScreen: React.FC<TeamScreenProps> = ({ route, navigation }) => {
   }, [teamId, eventId, teamName, teamData, modal, isMyTeam]);
 
   const handleDownloadImage = async () => {
-    // ... logica di download invariata
+    if (!teamData?.photoUrl) return;
+
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        modal?.showModal({
+          type: "info",
+          title: "Permesso di accesso richiesto",
+          message: `Per salvare la foto, l'app ha bisogno di accedere alla tua galleria. Per favore, abilita il permesso nelle impostazioni`,
+          persistent: true,
+          actions: [
+            {
+              text: "Apri Impostazioni",
+              onPress: () => {
+                Linking.openSettings();
+                modal.hideModal();
+              },
+              style: "default",
+            },
+          ],
+        });
+        return;
+      }
+
+      const fileUri = FileSystem.cacheDirectory + `${teamName || "team"}.jpg`;
+      const { uri } = await FileSystem.downloadAsync(
+        teamData.photoUrl,
+        fileUri
+      );
+
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      await MediaLibrary.createAlbumAsync("ADT CUP Teams", asset, false);
+
+      modal?.showModal({
+        type: "success",
+        title: "Immagine Salvata!",
+        message: "La foto del team è stata salvata nella tua galleria.",
+      });
+    } catch (error) {
+      console.error("Errore durante il download dell'immagine:", error);
+      modal?.showModal({
+        type: "error",
+        title: "Errore",
+        message: "Non è stato possibile salvare l'immagine. Riprova.",
+      });
+    }
   };
 
   if (loading) {

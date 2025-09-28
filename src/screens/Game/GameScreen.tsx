@@ -130,11 +130,25 @@ const LocationComponent: React.FC<{ location: DocumentData }> = ({
 
 const MultipleChoiceComponent: React.FC<{
   quizData: DocumentData;
+  startTime: Timestamp; // Aggiunto per il calcolo del tempo
   onConfirm: (answers: { [key: string]: number }) => void;
-}> = ({ quizData, onConfirm }) => {
+}> = ({ quizData, startTime, onConfirm }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: number }>({});
-  const [timeLeft, setTimeLeft] = useState(quizData.timeLimitSeconds || 120);
+
+  // Calcola il tempo rimanente iniziale
+  const calculateInitialTimeLeft = () => {
+    const timeLimit = quizData.timeLimitSeconds || 120;
+    if (!startTime) {
+      return timeLimit;
+    }
+    const deadline = startTime.toMillis() + timeLimit * 1000;
+    const now = Date.now();
+    const remaining = deadline - now;
+    return Math.max(0, Math.floor(remaining / 1000));
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateInitialTimeLeft);
   const onConfirmRef = React.useRef(onConfirm);
   onConfirmRef.current = onConfirm;
 
@@ -147,18 +161,34 @@ const MultipleChoiceComponent: React.FC<{
       handleTimeUp();
       return;
     }
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
+
     return () => clearInterval(timer);
   }, [timeLeft, handleTimeUp]);
 
   const handleSelectAnswer = (questionId: string, answerIndex: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: answerIndex }));
   };
+
+  if (timeLeft <= 0) {
+    return (
+      <View style={styles.centeredContainer}>
+        <Icon name="clock" size={60} color={theme.colors.error} />
+        <Text style={[styles.authTitle, { marginTop: theme.spacing.md }]}>
+          Tempo Scaduto!
+        </Text>
+        <Text style={styles.bodyText}>
+          Il tempo per questo quiz è terminato. Stai per essere reindirizzato...
+        </Text>
+      </View>
+    );
+  }
+
   const currentQuestion = quizData.questions[currentQuestionIndex];
 
-  console.log(currentQuestionIndex, quizData.questions.length - 1);
   return (
     <View style={styles.mcContainer}>
       <View style={styles.mcHeader}>
@@ -513,6 +543,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ navigation }) => {
           <MultipleChoiceComponent
             quizData={currentRiddle}
             onConfirm={handleQuizSubmit}
+            startTime={gameState.lastScanTime}
           />
         );
       case "multipleChoiceLeaderboard":
