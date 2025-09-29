@@ -1,12 +1,15 @@
 import { Feather as Icon } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { DocumentData } from "firebase/firestore";
+import { DocumentData, GeoPoint, Timestamp } from "firebase/firestore";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   SafeAreaView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,10 +17,14 @@ import {
 import { styles } from "@/src/styles/styles";
 import {
   adminAssignUserToTeam,
+  adminCreateTeam,
+  adminDeleteTeam,
   adminRemoveUserFromTeam,
+  adminUpdateTeam,
   listenToAllTeamsProgress,
   listenToUsersRegisteredAfter,
 } from "../../api/adminService";
+import { AdminHeader } from "../../components/AdminHeader";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ModalContext } from "../../contexts/ModalContext";
@@ -30,8 +37,7 @@ type Props = AdminTabScreenProps<"AdminTeams">;
 type ListItem =
   | { type: "header"; title: string }
   | { type: "player"; data: DocumentData; inTeam: boolean }
-  | { type: "empty"; message: string }
-  | { type: "date_picker" };
+  | { type: "empty"; message: string };
 
 const AdminTeamsScreen: React.FC<Props> = () => {
   const authContext = useContext(AuthContext);
@@ -40,19 +46,30 @@ const AdminTeamsScreen: React.FC<Props> = () => {
   const [teams, setTeams] = useState<DocumentData[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<DocumentData | null>(null);
-  const [editableTeamData, setEditableTeamData] = useState<
-    Partial<DocumentData>
-  >({});
   const [isCreating, setIsCreating] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState<DocumentData[]>([]);
+
+  // Stati per i selettori di data
   const [filterDate, setFilterDate] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 7); // Una settimana fa
+    d.setDate(d.getDate() - 7);
     return d;
   });
   const [showFilterDatePicker, setShowFilterDatePicker] = useState(false);
+  const [showScanTimePicker, setShowScanTimePicker] = useState(false); // Stato per il nuovo picker
 
-  // Listener per i team
+  const [editableTeamData, setEditableTeamData] = useState({
+    name: "",
+    numericId: "",
+    score: "",
+    currentRiddleIndex: "",
+    currentRiddleNumber: "",
+    photoUrl: "",
+    startLocationLat: "",
+    startLocationLon: "",
+    lastScanTime: "",
+  });
+
   useEffect(() => {
     if (!authContext?.currentEventId) {
       setLoading(false);
@@ -68,7 +85,6 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     return () => unsubscribe();
   }, [authContext?.currentEventId]);
 
-  // Listener per gli utenti, si riattiva quando cambia la data del filtro
   useEffect(() => {
     const unsubscribe = listenToUsersRegisteredAfter(
       filterDate,
@@ -78,15 +94,13 @@ const AdminTeamsScreen: React.FC<Props> = () => {
   }, [filterDate]);
 
   const { teamMembers, availablePlayers } = useMemo(() => {
-    if (!selectedTeam) return { teamMembers: [], availablePlayers: [] };
-
-    // I membri del team sono quelli il cui teamId corrisponde, presi dalla lista filtrata
+    if (!selectedTeam || !selectedTeam.numericId) {
+      return { teamMembers: [], availablePlayers: [] };
+    }
     const members = filteredUsers.filter(
-      (user) => user.teamId === selectedTeam.id
+      (user) => user.teamId === selectedTeam.numericId
     );
-    // I giocatori disponibili sono quelli senza teamId
     const available = filteredUsers.filter((user) => !user.teamId);
-
     return { teamMembers: members, availablePlayers: available };
   }, [selectedTeam, filteredUsers]);
 
@@ -97,20 +111,37 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     }
   };
 
+  // Handler per il nuovo DatePicker di lastScanTime
+  const onScanTimeChange = (event: any, selectedDate?: Date) => {
+    setShowScanTimePicker(false);
+    if (event.type === "set" && selectedDate) {
+      setEditableTeamData((prev) => ({
+        ...prev,
+        lastScanTime: selectedDate.toISOString(),
+      }));
+    }
+  };
+
   const handleOpenModal = (team: DocumentData | null) => {
     setIsCreating(!team);
     setSelectedTeam(team);
-    setEditableTeamData(
-      team
-        ? {
-            ...team,
-            score: team.score?.toString() ?? "0",
-            currentRiddleNumber: team.currentRiddleNumber?.toString() ?? "1",
-            startLocationLat: team.startLocation?.latitude?.toString() ?? "",
-            startLocationLon: team.startLocation?.longitude?.toString() ?? "",
-          }
-        : { name: "" }
-    );
+
+    const lastScanTimeString =
+      team?.lastScanTime instanceof Timestamp
+        ? team.lastScanTime.toDate().toISOString()
+        : "";
+
+    setEditableTeamData({
+      name: team?.name || "",
+      numericId: team?.numericId?.toString() || "",
+      score: team?.score?.toString() || "0",
+      currentRiddleIndex: team?.currentRiddleIndex || "",
+      currentRiddleNumber: team?.currentRiddleNumber?.toString() || "1",
+      photoUrl: team?.photoUrl || "",
+      startLocationLat: team?.startLocation?.latitude?.toString() || "",
+      startLocationLon: team?.startLocation?.longitude?.toString() || "",
+      lastScanTime: lastScanTimeString,
+    });
     setModalVisible(true);
   };
 
@@ -119,24 +150,102 @@ const AdminTeamsScreen: React.FC<Props> = () => {
   };
 
   const handleSave = async () => {
-    // ... (logica di salvataggio invariata)
+    const {
+      name,
+      numericId,
+      score,
+      startLocationLat,
+      startLocationLon,
+      lastScanTime,
+      ...rest
+    } = editableTeamData;
+
+    const numId = parseInt(numericId, 10);
+    if (!authContext?.currentEventId || !name || isNaN(numId)) {
+      modal?.showModal({
+        type: "error",
+        title: "Dati mancanti",
+        message: "Nome squadra e ID Numerico valido sono obbligatori.",
+      });
+      return;
+    }
+
+    try {
+      const dataToSave: DocumentData = {
+        name: name.trim(),
+        numericId: numId,
+        score: parseInt(score, 10) || 0,
+        currentRiddleIndex: rest.currentRiddleIndex.trim(),
+        currentRiddleNumber: parseInt(rest.currentRiddleNumber, 10) || 1,
+        photoUrl: rest.photoUrl.trim(),
+      };
+
+      const lat = parseFloat(startLocationLat);
+      const lon = parseFloat(startLocationLon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        dataToSave.startLocation = new GeoPoint(lat, lon);
+      }
+
+      if (lastScanTime) {
+        const date = new Date(lastScanTime);
+        if (!isNaN(date.getTime())) {
+          dataToSave.lastScanTime = Timestamp.fromDate(date);
+        }
+      }
+
+      if (isCreating) {
+        await adminCreateTeam(authContext.currentEventId, dataToSave);
+      } else if (selectedTeam) {
+        await adminUpdateTeam(
+          authContext.currentEventId,
+          selectedTeam.id,
+          dataToSave
+        );
+      }
+      handleCloseModal();
+    } catch (error: any) {
+      modal?.showModal({
+        type: "error",
+        title: "Errore",
+        message: error.message,
+      });
+      console.error("Errore salvataggio team:", error);
+    }
   };
 
   const handleDelete = (team: DocumentData) => {
-    // ... (logica di cancellazione invariata)
+    Alert.alert(
+      "Conferma",
+      `Sei sicuro di voler eliminare il team "${team.name}"?`,
+      [
+        { text: "Annulla", style: "cancel" },
+        {
+          text: "Elimina",
+          style: "destructive",
+          onPress: async () => {
+            if (!authContext?.currentEventId) return;
+            await adminDeleteTeam(authContext.currentEventId, team.id);
+          },
+        },
+      ]
+    );
   };
 
   const handleAssignPlayer = async (userId: string) => {
-    if (!authContext?.currentEventId || !selectedTeam) return;
+    if (
+      !authContext?.currentEventId ||
+      !selectedTeam ||
+      !selectedTeam.numericId
+    )
+      return;
     await adminAssignUserToTeam(
       authContext.currentEventId,
-      selectedTeam.id,
+      selectedTeam.numericId,
       userId
     );
   };
 
   const handleRemovePlayer = async (userId: string) => {
-    if (!authContext?.currentEventId || !selectedTeam) return;
     await adminRemoveUserFromTeam(userId);
   };
 
@@ -144,8 +253,15 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     <TouchableOpacity
       style={adminStyles.adminListItem}
       onPress={() => handleOpenModal(item)}
+      onLongPress={() => handleDelete(item)}
     >
-      {/* ... (contenuto invariato) */}
+      <View style={adminStyles.adminListItemContent}>
+        <Text style={adminStyles.adminListItemTitle}>{item.name}</Text>
+        <Text style={adminStyles.adminListItemSubtitle}>
+          ID Numerico: {item.numericId ?? "N/A"} - Punti: {item.score || 0}
+        </Text>
+      </View>
+      <Icon name="edit-2" size={24} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -172,12 +288,11 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     </View>
   );
 
-  // Costruisce la lista di dati per la FlatList nella modal
   const modalListData: ListItem[] = useMemo(() => {
     if (isCreating) return [];
-
-    const data: ListItem[] = [];
-    data.push({ type: "header", title: "Giocatori in squadra" });
+    const data: ListItem[] = [
+      { type: "header", title: "Giocatori in squadra" },
+    ];
     if (teamMembers.length > 0) {
       teamMembers.forEach((p) =>
         data.push({ type: "player", data: p, inTeam: true })
@@ -188,10 +303,7 @@ const AdminTeamsScreen: React.FC<Props> = () => {
         message: "Nessun giocatore in questa squadra.",
       });
     }
-
     data.push({ type: "header", title: "Giocatori disponibili" });
-    data.push({ type: "date_picker" }); // Elemento per il selettore data
-
     if (availablePlayers.length > 0) {
       availablePlayers.forEach((p) =>
         data.push({ type: "player", data: p, inTeam: false })
@@ -199,10 +311,9 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     } else {
       data.push({
         type: "empty",
-        message: "Nessun giocatore trovato dopo la data selezionata.",
+        message: "Nessun giocatore disponibile trovato.",
       });
     }
-
     return data;
   }, [isCreating, teamMembers, availablePlayers]);
 
@@ -210,56 +321,133 @@ const AdminTeamsScreen: React.FC<Props> = () => {
     switch (item.type) {
       case "header":
         return <Text style={adminStyles.adminSectionTitle}>{item.title}</Text>;
-      case "date_picker":
-        return (
-          <View>
-            <TouchableOpacity
-              onPress={() => setShowFilterDatePicker(true)}
-              style={adminStyles.adminRow}
-            >
-              <Text style={adminStyles.adminLabel}>Mostra registrati dal:</Text>
-              <Text style={adminStyles.adminInput}>
-                {filterDate.toLocaleDateString("it-IT")}
-              </Text>
-            </TouchableOpacity>
-            {showFilterDatePicker && (
-              <DateTimePicker
-                value={filterDate}
-                mode="date"
-                display="default"
-                onChange={onFilterDateChange}
-              />
-            )}
-          </View>
-        );
       case "player":
         return renderPlayerItem({ item: item.data, inTeam: item.inTeam });
       case "empty":
-        return <Text style={styles.bodyText}>{item.message}</Text>;
+        return (
+          <Text style={[styles.bodyText, { textAlign: "left", padding: 10 }]}>
+            {item.message}
+          </Text>
+        );
       default:
         return null;
     }
   };
 
-  const renderModalHeader = () => (
-    <View>
-      <Text style={adminStyles.adminSectionTitle}>Info Squadra</Text>
-      {/* ... (tutti i TextInput per i dati della squadra) */}
-      <PrimaryButton
-        title="Salva Modifiche"
-        onPress={handleSave}
-        style={{ marginVertical: theme.spacing.md }}
+  const renderTextInput = (
+    label: string,
+    field: keyof typeof editableTeamData,
+    keyboardType: any = "default"
+  ) => (
+    <View style={adminStyles.adminRow}>
+      <Text style={adminStyles.adminLabel}>{label}</Text>
+      <TextInput
+        style={adminStyles.adminInput}
+        value={editableTeamData[field]}
+        keyboardType={keyboardType}
+        onChangeText={(text) =>
+          setEditableTeamData((prev) => ({ ...prev, [field]: text }))
+        }
+        placeholderTextColor={theme.colors.textSecondary}
       />
     </View>
   );
 
+  const renderModalHeader = () => {
+    const formattedScanTime = editableTeamData.lastScanTime
+      ? new Date(editableTeamData.lastScanTime).toLocaleString("it-IT")
+      : "Seleziona data";
+
+    return (
+      <View>
+        <Text style={adminStyles.adminSectionTitle}>Info Squadra</Text>
+        {renderTextInput("Nome Squadra", "name")}
+        {renderTextInput("ID Numerico", "numericId", "number-pad")}
+        {renderTextInput("Punteggio", "score", "number-pad")}
+        {renderTextInput("ID Quiz Attuale", "currentRiddleIndex")}
+        {renderTextInput(
+          "Numero Quiz Attuale",
+          "currentRiddleNumber",
+          "number-pad"
+        )}
+        {renderTextInput("URL Foto", "photoUrl")}
+        {renderTextInput("Latitudine Partenza", "startLocationLat", "numeric")}
+        {renderTextInput("Longitudine Partenza", "startLocationLon", "numeric")}
+
+        {/* Campo Data/Ora cliccabile */}
+        <View style={adminStyles.adminRow}>
+          <Text style={adminStyles.adminLabel}>Ultima Scansione</Text>
+          <TouchableOpacity
+            onPress={() => setShowScanTimePicker(true)}
+            style={{ flex: 1 }}
+          >
+            <Text style={adminStyles.adminInput}>{formattedScanTime}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showScanTimePicker && (
+          <DateTimePicker
+            value={new Date(editableTeamData.lastScanTime || Date.now())}
+            mode="datetime"
+            display="default"
+            onChange={onScanTimeChange}
+            style={{ marginBottom: theme.spacing.md }}
+            themeVariant="dark"
+          />
+        )}
+
+        <TouchableOpacity
+          onPress={() => setShowFilterDatePicker(true)}
+          style={adminStyles.adminRow}
+        >
+          <Text style={adminStyles.adminLabel}>Filtra utenti dal:</Text>
+          <Text style={adminStyles.adminInput}>
+            {filterDate.toLocaleDateString("it-IT")}
+          </Text>
+        </TouchableOpacity>
+        {showFilterDatePicker && (
+          <DateTimePicker
+            value={filterDate}
+            mode="date"
+            display="default"
+            onChange={onFilterDateChange}
+            themeVariant="dark"
+          />
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.standardScreenContainer}>
-      {/* ... (Header e lista team principale invariati) */}
+      <AdminHeader title="Gestione Squadre">
+        <TouchableOpacity onPress={() => handleOpenModal(null)}>
+          <Icon
+            name="plus-circle"
+            size={28}
+            color={theme.colors.accentPrimary}
+          />
+        </TouchableOpacity>
+      </AdminHeader>
+      <FlatList
+        data={teams}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTeamItem}
+        contentContainerStyle={adminStyles.adminListContainer}
+        ListEmptyComponent={
+          <View style={styles.centeredContainer}>
+            {loading ? (
+              <ActivityIndicator color={theme.colors.accentPrimary} />
+            ) : (
+              <Text style={styles.bodyText}>Nessuna squadra creata.</Text>
+            )}
+          </View>
+        }
+      />
 
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={isModalVisible}
         onRequestClose={handleCloseModal}
       >
@@ -278,7 +466,13 @@ const AdminTeamsScreen: React.FC<Props> = () => {
             keyExtractor={(item, index) => `${item.type}-${index}`}
             renderItem={renderModalListItem}
             ListHeaderComponent={renderModalHeader}
-            ListFooterComponent={<View style={{ height: 50 }} />}
+            ListFooterComponent={
+              <PrimaryButton
+                title={isCreating ? "Crea Squadra" : "Salva Modifiche"}
+                onPress={handleSave}
+                style={{ marginVertical: theme.spacing.md }}
+              />
+            }
           />
         </SafeAreaView>
       </Modal>

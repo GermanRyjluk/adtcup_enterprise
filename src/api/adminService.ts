@@ -88,23 +88,31 @@ export const listenToRiddles = (
 /**
  * Crea un nuovo team in un evento.
  * @param eventId L'ID dell'evento.
- * @param teamName Il nome del nuovo team.
+ * @param teamData L'oggetto contenente i dati del nuovo team.
  */
 export const adminCreateTeam = async (
   eventId: string,
-  teamName: string
+  teamData: DocumentData
 ): Promise<void> => {
+  if (!teamData.name || isNaN(teamData.numericId)) {
+    throw new Error("Nome del team e ID Numerico sono obbligatori.");
+  }
   const teamsRef = collection(db, "events", eventId, "teams");
-  await addDoc(teamsRef, {
-    name: teamName,
-    score: 0,
-    currentRiddleIndex: "uSY712xQXRsSdR2kjQtt", // Indovinello di partenza
-    currentRiddleNumber: 1,
+
+  // Imposta valori di default se non forniti
+  const newTeam = {
+    name: teamData.name,
+    numericId: teamData.numericId,
+    score: teamData.score || 0,
+    currentRiddleIndex: teamData.currentRiddleIndex || "1",
+    currentRiddleNumber: teamData.currentRiddleNumber || 1,
+    photoUrl: teamData.photoUrl || "",
+    startLocation: teamData.startLocation || new GeoPoint(45.046808, 7.682705),
     isGameFinished: false,
     createdAt: serverTimestamp(),
-    photoUrl: "",
-    startLocation: new GeoPoint(45.046808, 7.682705),
-  });
+  };
+
+  await addDoc(teamsRef, newTeam);
 };
 
 /**
@@ -158,19 +166,23 @@ export const adminGetUsers = async (
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
+
 /**
- * Assegna un utente a un team e un utente a un team, aggiornando entrambi i documenti.
+ * Assegna un utente a un team usando l'ID numerico del team.
  * @param eventId L'ID dell'evento.
- * @param teamId L'ID del team.
+ * @param teamNumericId L'ID numerico del team.
  * @param userId L'ID dell'utente da assegnare.
  */
 export const adminAssignUserToTeam = async (
   eventId: string,
-  teamId: string,
+  teamNumericId: number,
   userId: string
 ): Promise<void> => {
   const userDocRef = doc(db, "users", userId);
-  await updateDoc(userDocRef, { teamId: teamId, currentEventId: eventId });
+  await updateDoc(userDocRef, {
+    teamId: teamNumericId,
+    currentEventId: eventId,
+  });
 };
 
 /**
@@ -508,7 +520,7 @@ export const listenToUsersRegisteredAfter = (
   callback: (users: DocumentData[]) => void
 ): Unsubscribe => {
   const usersRef = collection(db, "users");
-  const startDate = Timestamp.fromDate(date); // Converti la data in Timestamp di Firestore
+  const startDate = Timestamp.fromDate(date);
 
   const q = query(
     usersRef,
@@ -543,4 +555,34 @@ export const updateEvent = async (
 ): Promise<void> => {
   const eventDocRef = doc(db, "events", eventId);
   await updateDoc(eventDocRef, data);
+};
+
+/**
+ * Aggiorna tutte le squadre di un evento a un nuovo indovinello specifico.
+ * Utile per avviare una fase di gioco per tutti contemporaneamente.
+ * @param eventId L'ID dell'evento.
+ * @param newRiddleIndex L'ID del nuovo indovinello/quiz.
+ * @param newRiddleNumber Il numero progressivo della nuova fase.
+ */
+export const adminStartQuizPhaseForAllTeams = async (
+  eventId: string,
+  newRiddleIndex: string,
+  newRiddleNumber: number
+): Promise<void> => {
+  if (!eventId || !newRiddleIndex) {
+    throw new Error("ID evento e ID indovinello sono obbligatori.");
+  }
+
+  const batch = writeBatch(db);
+  const teamsRef = collection(db, "events", eventId, "teams");
+  const teamsSnapshot = await getDocs(teamsRef);
+
+  teamsSnapshot.forEach((teamDoc) => {
+    batch.update(teamDoc.ref, {
+      currentRiddleIndex: newRiddleIndex,
+      currentRiddleNumber: newRiddleNumber,
+    });
+  });
+
+  await batch.commit();
 };

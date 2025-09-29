@@ -132,7 +132,7 @@ export const adminStyles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    // paddingHorizontal: theme.spacing.md,
   },
   statCardContainer: {
     flexDirection: "row",

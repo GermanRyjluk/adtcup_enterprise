@@ -1,122 +1,260 @@
 import { Feather as Icon } from "@expo/vector-icons";
-import { DocumentData, Timestamp } from "firebase/firestore";
-import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { DocumentData } from "firebase/firestore";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import DraggableFlatList, {
+  RenderItemParams,
+} from "react-native-draggable-flatlist";
 
-import { AdminHeader } from "@/src/components/AdminHeader";
-import { listenToAllTeamsProgress } from "../../api/adminService";
-import { listenEventDetails } from "../../api/eventService";
+import {
+  adminStartQuizPhaseForAllTeams,
+  assignPointsInBatch,
+  listenToAllTeamsProgress,
+  listenToRiddles,
+} from "../../api/adminService";
+import { listenEventDetails } from "../../api/eventService"; // Importa listenEventDetails
+import { AdminHeader } from "../../components/AdminHeader";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
-import { AdminTabScreenProps } from "../../navigation/types";
+import { ModalContext } from "../../contexts/ModalContext";
+import { adminStyles } from "../../styles/adminStyles";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 
-type Props = AdminTabScreenProps<"AdminDashboard">;
-
-// Componente per le card di riepilogo
-const StatCard: React.FC<{
-  icon: keyof typeof Icon.glyphMap;
-  label: string;
-  value: string | number;
-}> = ({ icon, label, value }) => (
-  <View style={styles.statCard}>
-    <Icon name={icon} size={24} color={theme.colors.accentPrimary} />
-    <Text style={styles.statCardValue}>{value}</Text>
-    <Text style={styles.statCardLabel}>{label}</Text>
-  </View>
-);
-
-// Componente per la riga di progresso di un team
-const TeamProgressItem: React.FC<{
+// Nuovo componente per la timeline stilistica
+const TimelineItem: React.FC<{
   item: DocumentData;
-  totalRiddles: number;
-}> = ({ item, totalRiddles }) => (
-  <View style={styles.teamProgressRow}>
-    <Text style={styles.teamProgressName} numberOfLines={1}>
-      {item.name || "Team Senza Nome"}
-    </Text>
-    <View style={styles.teamProgressInfo}>
-      <Icon
-        name="check-circle"
-        size={16}
-        color={theme.colors.textSecondary}
-        style={{ marginRight: 4 }}
-      />
-      <Text style={styles.teamProgressText}>
-        {item.currentRiddleNumber || 0} / {totalRiddles}
-      </Text>
-      <Icon
-        name="star"
-        size={16}
-        color={theme.colors.textSecondary}
-        style={{ marginLeft: 12, marginRight: 4 }}
-      />
-      <Text style={styles.teamProgressText}>{item.score || 0} pts</Text>
+  isLast: boolean;
+  totalTeams: number;
+}> = ({ item, isLast, totalTeams }) => {
+  const progress = totalTeams > 0 ? (item.teamCount / totalTeams) * 100 : 0;
+  const icons: { [key: string]: keyof typeof Icon.glyphMap } = {
+    riddle: "key",
+    location: "map-pin",
+    multipleChoice: "list",
+    multipleChoiceLeaderboard: "award",
+  };
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+      <View style={{ alignItems: "center" }}>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: theme.colors.cardBackground,
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1,
+          }}
+        >
+          <Icon
+            name={icons[item.type] || "help-circle"}
+            size={20}
+            color={theme.colors.accentPrimary}
+          />
+        </View>
+        {!isLast && (
+          <View
+            style={{
+              width: 2,
+              height: "100%",
+              backgroundColor: theme.colors.cardBackground,
+              position: "absolute",
+              top: 40,
+            }}
+          />
+        )}
+      </View>
+
+      <View
+        style={[
+          adminStyles.adminListItem,
+          { flex: 1, marginLeft: theme.spacing.md },
+        ]}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={adminStyles.adminListItemTitle}>
+            Fase {item.currentRiddleNumber}
+          </Text>
+          <Text style={adminStyles.adminListItemSubtitle}>
+            {item.locationName || item.type}
+          </Text>
+          <View
+            style={[
+              styles.progressBarContainer,
+              { marginHorizontal: 0, marginTop: 8 },
+            ]}
+          >
+            <View style={[styles.progressBar, { width: `${progress}%` }]} />
+          </View>
+        </View>
+        <View style={{ alignItems: "center" }}>
+          <Text style={adminStyles.statCardValue}>{item.teamCount}</Text>
+          <Text style={adminStyles.statCardLabel}>Squadre</Text>
+        </View>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
-const AdminDashboardScreen: React.FC<Props> = () => {
+const AdminDashboardScreen = () => {
   const authContext = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const [eventData, setEventData] = useState<DocumentData | null>(null);
-  const [teamsProgress, setTeamsProgress] = useState<DocumentData[]>([]);
-  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const modal = useContext(ModalContext);
 
-  // Listener per i dati dell'evento e dei team
+  const [loading, setLoading] = useState(true);
+  const [eventData, setEventData] = useState<DocumentData | null>(null); // Stato per i dati dell'evento
+  const [teams, setTeams] = useState<DocumentData[]>([]);
+  const [riddles, setRiddles] = useState<DocumentData[]>([]);
+
+  const [isGameModalVisible, setGameModalVisible] = useState(false);
+  const [currentGame, setCurrentGame] = useState<"Gioco 1" | "Gioco 2" | null>(
+    null
+  );
+  const [rankedTeams, setRankedTeams] = useState<DocumentData[]>([]);
+  const [isAssigning, setIsAssigning] = useState(false);
+
   useEffect(() => {
     if (!authContext?.currentEventId) {
       setLoading(false);
       return;
     }
-
-    const unsubscribeEvent = listenEventDetails(
+    const unsubTeams = listenToAllTeamsProgress(
+      authContext.currentEventId,
+      setTeams
+    );
+    const unsubRiddles = listenToRiddles(
+      authContext.currentEventId,
+      setRiddles
+    );
+    // Aggiungi un listener per i dettagli dell'evento per ottenere i punteggi dinamici
+    const unsubEvent = listenEventDetails(
       authContext.currentEventId,
       (data) => {
         setEventData(data);
+        setLoading(false);
       }
     );
-
-    const unsubscribeTeams = listenToAllTeamsProgress(
-      authContext.currentEventId,
-      (teams) => {
-        setTeamsProgress(teams);
-        if (loading) setLoading(false);
-      }
-    );
-
     return () => {
-      unsubscribeEvent();
-      unsubscribeTeams();
+      unsubTeams();
+      unsubRiddles();
+      unsubEvent();
     };
   }, [authContext?.currentEventId]);
 
-  // Timer per il tempo trascorso
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (eventData?.startTime && eventData?.isStarted) {
-        const startTime = (eventData.startTime as Timestamp).toMillis();
-        const now = Date.now();
-        const diff = Math.max(0, now - startTime);
+  const timelineData = useMemo(() => {
+    if (riddles.length === 0) return [];
+    const teamsByRiddle = teams.reduce((acc, team) => {
+      const riddleId = team.currentRiddleIndex;
+      if (!acc[riddleId]) acc[riddleId] = 0;
+      acc[riddleId]++;
+      return acc;
+    }, {} as { [key: string]: number });
 
-        const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
-        const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(
-          2,
-          "0"
-        );
-        const seconds = String(Math.floor((diff % 60000) / 1000)).padStart(
-          2,
-          "0"
-        );
+    return riddles.map((riddle) => ({
+      ...riddle,
+      teamCount: teamsByRiddle[riddle.id] || 0,
+    }));
+  }, [teams, riddles]);
 
-        setElapsedTime(`${hours}:${minutes}:${seconds}`);
-      } else {
-        setElapsedTime("00:00:00");
-      }
-    }, 1000);
+  const handleStartQuizPhase = () => {
+    Alert.alert(
+      "Avviare Fase Quiz?",
+      "Tutte le squadre verranno spostate alla fase 4 (Quiz a tempo). Sei sicuro?",
+      [
+        { text: "Annulla", style: "cancel" },
+        {
+          text: "Conferma",
+          style: "destructive",
+          onPress: async () => {
+            if (!authContext?.currentEventId) return;
+            try {
+              await adminStartQuizPhaseForAllTeams(
+                authContext.currentEventId,
+                "0Vff6VScDHxwK5Qxj51v",
+                4
+              );
+              modal?.showModal({
+                type: "success",
+                title: "Fase Quiz Avviata!",
+                message: "Tutte le squadre sono state spostate.",
+              });
+            } catch (error: any) {
+              modal?.showModal({
+                type: "error",
+                title: "Errore",
+                message: error.message,
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
 
-    return () => clearInterval(timer);
-  }, [eventData]);
+  const handleOpenGameModal = (game: "Gioco 1" | "Gioco 2") => {
+    setCurrentGame(game);
+    const sortedTeams = [...teams].sort(
+      (a, b) => (b.score || 0) - (a.score || 0)
+    );
+    setRankedTeams(sortedTeams);
+    setGameModalVisible(true);
+  };
+
+  const handleCloseGameModal = () => {
+    setGameModalVisible(false);
+  };
+
+  const handleSaveGameScores = async () => {
+    if (!authContext?.currentEventId || !currentGame) return;
+
+    // Seleziona l'array di punteggi corretto in base al gioco corrente
+    const pointsArray =
+      eventData?.[
+        currentGame === "Gioco 1" ? "gioco1Points" : "gioco2Points"
+      ] || [];
+    if (pointsArray.length === 0) {
+      modal?.showModal({
+        type: "error",
+        title: "Punteggi non trovati",
+        message: `Assicurati di aver configurato i punteggi per ${currentGame} nell'evento.`,
+      });
+      return;
+    }
+
+    setIsAssigning(true);
+    try {
+      const assignments = rankedTeams.map((team, index) => ({
+        teamId: team.id,
+        points: pointsArray[index] || 0, // Usa l'array dinamico
+      }));
+      await assignPointsInBatch(authContext.currentEventId, assignments);
+      modal?.showModal({
+        type: "success",
+        title: "Successo!",
+        message: `Punti per ${currentGame} assegnati.`,
+      });
+      handleCloseGameModal();
+    } catch (error: any) {
+      modal?.showModal({
+        type: "error",
+        title: "Errore",
+        message: error.message,
+      });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -126,60 +264,142 @@ const AdminDashboardScreen: React.FC<Props> = () => {
     );
   }
 
-  if (!eventData) {
-    return (
-      <View style={styles.standardScreenContainer}>
-        <View style={styles.header}>
-          <Text style={styles.sectionTitle}>Dashboard</Text>
-        </View>
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text style={styles.bodyText}>Nessun evento attivo trovato.</Text>
-        </View>
-      </View>
-    );
-  }
+  // Funzione per renderizzare gli item nel DraggableFlatList
+  const renderRankedTeamItem = ({
+    item,
+    drag,
+    isActive,
+  }: RenderItemParams<DocumentData>) => {
+    const index = rankedTeams.findIndex((t) => t.id === item.id);
+    const pointsArray =
+      eventData?.[
+        currentGame === "Gioco 1" ? "gioco1Points" : "gioco2Points"
+      ] || [];
+    const pointsToAdd = pointsArray[index] || 0;
 
-  const totalRiddles = eventData?.totalRiddles || 10;
+    return (
+      <TouchableOpacity
+        onLongPress={drag}
+        disabled={isActive}
+        style={[
+          adminStyles.adminListItem,
+          {
+            marginHorizontal: theme.spacing.md,
+            backgroundColor: isActive
+              ? theme.colors.backgroundStart
+              : theme.colors.cardBackground,
+          },
+        ]}
+      >
+        <Text style={adminStyles.leaderboardPosition}>{index + 1}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={adminStyles.adminListItemTitle}>{item.name}</Text>
+          <Text style={adminStyles.adminListItemSubtitle}>
+            Score: {item.score}
+          </Text>
+        </View>
+        <Text style={adminStyles.statCardValue}>+{pointsToAdd}</Text>
+        <View style={{ marginLeft: theme.spacing.md }}>
+          <Icon name="menu" size={28} color={theme.colors.textSecondary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.standardScreenContainer}>
-      <AdminHeader title={`Dashboard: ${eventData.name}`} />
-      <FlatList
-        ListHeaderComponent={
-          <>
-            <Text style={styles.adminSectionTitle}>Informazione</Text>
-            <View style={styles.statCardContainer}>
-              <StatCard
-                icon="clock"
-                label="Tempo Trascorso"
-                value={elapsedTime}
-              />
-              <StatCard
-                icon="users"
-                label="Squadre"
-                value={teamsProgress.length}
-              />
-            </View>
-            <Text style={styles.adminSectionTitle}>Progresso Squadre</Text>
-          </>
-        }
-        data={teamsProgress}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TeamProgressItem item={item} totalRiddles={totalRiddles} />
-        )}
-        ListEmptyComponent={
-          <Text style={[styles.bodyText, { textAlign: "left" }]}>
-            Nessuna squadra ancora in gioco.
+      <AdminHeader title="Dashboard Evento" />
+
+      <ScrollView contentContainerStyle={adminStyles.adminListContainer}>
+        <Text style={adminStyles.adminSectionTitle}>Controlli Evento</Text>
+        <View style={adminStyles.adminListItem}>
+          <Text style={adminStyles.adminListItemTitle}>Avvio Fase Quiz</Text>
+          <PrimaryButton title="AVVIA" onPress={handleStartQuizPhase} />
+        </View>
+        <View style={adminStyles.adminListItem}>
+          <Text style={adminStyles.adminListItemTitle}>Punti Gioco 1</Text>
+          <PrimaryButton
+            title="GESTISCI"
+            onPress={() => handleOpenGameModal("Gioco 1")}
+          />
+        </View>
+        <View style={adminStyles.adminListItem}>
+          <Text style={adminStyles.adminListItemTitle}>Punti Gioco 2</Text>
+          <PrimaryButton
+            title="GESTISCI"
+            onPress={() => handleOpenGameModal("Gioco 2")}
+          />
+        </View>
+        {/* <View style={adminStyles.adminListItem}>
+          <Text style={adminStyles.adminListItemTitle}>
+            Popola Punti Giochi
           </Text>
-        }
-        contentContainerStyle={{
-          paddingBottom: 100,
-          paddingHorizontal: theme.spacing.lg,
-        }}
-      />
+          <PrimaryButton
+            title="ESEGUI"
+            onPress={() =>
+              populateQuizPoints(
+                authContext?.currentEventId || "",
+                "xFdqIIoGHFwyQkiN7YOM"
+              )
+            }
+          />
+        </View> */}
+
+        <Text style={adminStyles.adminSectionTitle}>Timeline Evento</Text>
+        {timelineData.map((item, index) => (
+          <TimelineItem
+            key={item.id}
+            item={item}
+            isLast={index === timelineData.length - 1}
+            totalTeams={teams.length}
+          />
+        ))}
+      </ScrollView>
+
+      <Modal
+        visible={isGameModalVisible}
+        animationType="slide"
+        onRequestClose={handleCloseGameModal}
+      >
+        <SafeAreaView
+          style={[
+            adminStyles.adminModalContainer,
+            { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+          ]}
+        >
+          <View style={adminStyles.adminModalHeader}>
+            <Text style={adminStyles.adminModalTitle}>
+              Classifica {currentGame}
+            </Text>
+            <TouchableOpacity onPress={handleCloseGameModal}>
+              <Icon name="x" size={24} color={theme.colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          <DraggableFlatList
+            data={rankedTeams}
+            onDragEnd={({ data }) => setRankedTeams(data)}
+            keyExtractor={(item) => item.id}
+            renderItem={renderRankedTeamItem}
+            containerStyle={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingBottom: 120,
+              paddingTop: theme.spacing.md,
+            }}
+          />
+          <View
+            style={[
+              adminStyles.fixedBottomButton,
+              { marginBottom: theme.spacing.lg },
+            ]}
+          >
+            <PrimaryButton
+              title="Assegna Punti"
+              onPress={handleSaveGameScores}
+              loading={isAssigning}
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };

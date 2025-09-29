@@ -29,8 +29,6 @@ import { theme } from "../../theme/theme";
 
 type EventDetailsScreenProps = PreGameNavigationProps<"EventDetails">;
 
-const DISTANCE_THRESHOLD = 35;
-
 const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
   route,
   navigation,
@@ -46,17 +44,18 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
     null
   );
   const [distance, setDistance] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState(""); // Stato per il countdown
+  const [countdown, setCountdown] = useState("");
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // 1. Gestione Permessi e Dati Iniziali
+  // Usa il valore dall'evento o un default di 50 metri
+  const distanceThreshold = eventData?.distanceThreshold || 50;
+
   useEffect(() => {
     const initialize = async () => {
       if (!authContext?.user) return;
       setLoading(true);
 
-      // Chiedi i permessi di localizzazione
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         const detailedMessage =
@@ -77,7 +76,6 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
       }
 
       try {
-        // Carica in parallelo i dati dell'evento e del profilo utente
         const [eventDetails, userProfile] = await Promise.all([
           getEventDetails(eventId),
           getUserProfile(authContext.user.uid),
@@ -86,8 +84,10 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
         setEventData(eventDetails);
 
         if (userProfile?.teamId && eventDetails) {
-          // Con il teamId, carica i dettagli della squadra per l'evento
-          const teamDetails = await getTeamDetails(eventId, userProfile.teamId);
+          const teamDetails = await getTeamDetails(
+            eventId,
+            userProfile.teamId.toString()
+          );
           if (teamDetails?.startLocation) {
             setTeamStartLocation(teamDetails.startLocation);
           }
@@ -101,17 +101,15 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
     initialize();
   }, [eventId, authContext?.user]);
 
-  // 2. Monitoraggio della posizione e calcolo della distanza
   useEffect(() => {
     if (!teamStartLocation) return;
 
     const startWatchingLocation = async () => {
-      // Inizia a monitorare la posizione dell'utente
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 2000, // ogni 2 secondi
-          distanceInterval: 5, // ogni 5 metri
+          timeInterval: 2000,
+          distanceInterval: 5,
         },
         (location) => {
           const userCoords = {
@@ -122,26 +120,19 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
             latitude: teamStartLocation.latitude,
             longitude: teamStartLocation.longitude,
           };
-
-          // Calcola e aggiorna la distanza
           const newDistance = getHaversineDistance(userCoords, startCoords);
           setDistance(newDistance);
         }
       );
-
-      // Cleanup: smetti di monitorare quando il componente viene smontato
       return () => subscription.remove();
     };
 
     startWatchingLocation();
   }, [teamStartLocation]);
 
-  // 3. Countdown Logic
   useEffect(() => {
     if (!eventData?.startTime) return;
-
     const targetDate = (eventData.startTime as Timestamp).toDate();
-
     const interval = setInterval(() => {
       const now = new Date();
       const timeDifference = targetDate.getTime() - now.getTime();
@@ -167,24 +158,32 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
     return () => clearInterval(interval);
   }, [eventData]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!authContext?.user) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        const eventDetails = await getEventDetails(eventId);
-        setEventData(eventDetails);
-      } catch (error) {
-        console.error("Errore nel caricamento dei dati:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [eventId, authContext?.user]);
+  const handleMeetingPointPress = () => {
+    if (teamStartLocation) {
+      const { latitude, longitude } = teamStartLocation;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      Linking.openURL(url);
+    } else {
+      modal?.showModal({
+        type: "info",
+        title: "Punto di Partenza Squadra",
+        message:
+          "Il punto di partenza specifico per la tua squadra sarà visibile qui poco prima dell'inizio dell'evento.\n\nNel frattempo, puoi aprire il punto di ritrovo generale dell'evento.",
+        actions: [
+          {
+            text: "Apri Mappa Generale",
+            onPress: () => {
+              if (eventData?.meetingPointUrl) {
+                Linking.openURL(eventData.meetingPointUrl);
+              }
+              modal.hideModal();
+            },
+            style: "default",
+          },
+        ],
+      });
+    }
+  };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp?.toDate) return "Data non disponibile";
@@ -200,15 +199,17 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
       .toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
   };
 
+  // Usa la variabile dinamica `distanceThreshold`
   const isButtonDisabled =
     distance === null ||
     !eventData?.isStarted ||
-    (distance !== null && distance > DISTANCE_THRESHOLD);
+    (distance !== null && distance > distanceThreshold);
 
   const getButtonSubtitle = () => {
-    if (!eventData?.eventStarted) return countdown;
+    if (!eventData?.isStarted) return countdown;
     if (distance === null) return "Calcolo posizione in corso...";
-    if (distance > DISTANCE_THRESHOLD)
+    // Usa la variabile dinamica `distanceThreshold`
+    if (distance > distanceThreshold)
       return `Sei a ${Math.round(distance)} metri di distanza`;
     return "Sei nel punto giusto, puoi iniziare!";
   };
@@ -263,7 +264,6 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
         />
       )}
 
-      {/* I pulsanti rimangono posizionati in modo assoluto sopra a tutto */}
       <View style={styles.detailsHeaderButtons}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -273,7 +273,6 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Lo ScrollView ora gestisce correttamente l'evento onScroll */}
       <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -281,10 +280,8 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
         )}
         scrollEventThrottle={16}
       >
-        {/* Questo View agisce come spaziatore per spingere il contenuto sotto l'header */}
         <View style={{ height: HEADER_HEIGHT }} />
 
-        {/* La card del contenuto ora è un semplice View all'interno dello ScrollView */}
         <View
           style={[
             styles.detailsContentCard,
@@ -322,25 +319,17 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
           </Text>
 
           <Text style={styles.detailsSectionTitle}>Punto di Ritrovo</Text>
-          <TouchableOpacity
-            onPress={() =>
-              Linking.openURL(
-                eventData.meetingPointUrl || "https://maps.google.com"
-              )
-            }
-          >
+          <TouchableOpacity onPress={handleMeetingPointPress}>
             <Image
               source={{ uri: eventData.mapImageUrl }}
               style={styles.detailsMap}
             />
           </TouchableOpacity>
 
-          {/* Spazio extra per non sovrapporsi al footer */}
           <View style={{ height: 120 }} />
         </View>
       </Animated.ScrollView>
 
-      {/* Il footer flottante rimane in posizione assoluta in fondo allo schermo */}
       <View style={styles.floatingFooter}>
         <LinearGradient
           colors={["transparent", theme.colors.backgroundEnd]}
@@ -359,7 +348,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({
           />
           <DistanceIndicator
             distance={distance}
-            threshold={DISTANCE_THRESHOLD}
+            threshold={distanceThreshold} // Usa la variabile dinamica
           />
         </LinearGradient>
       </View>
