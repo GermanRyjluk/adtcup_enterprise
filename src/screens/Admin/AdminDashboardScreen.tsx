@@ -1,4 +1,5 @@
 import { Feather as Icon } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { DocumentData } from "firebase/firestore";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
@@ -15,13 +16,15 @@ import DraggableFlatList, {
   RenderItemParams,
 } from "react-native-draggable-flatlist";
 
+import { populateMultipleChoiceQuiz } from "@/src/api/popolateService";
 import {
+  adminResetUsersGameState, // <- Nuova importazione
   adminStartQuizPhaseForAllTeams,
   assignPointsInBatch,
   listenToAllTeamsProgress,
   listenToRiddles,
 } from "../../api/adminService";
-import { listenEventDetails } from "../../api/eventService"; // Importa listenEventDetails
+import { listenEventDetails } from "../../api/eventService";
 import { AdminHeader } from "../../components/AdminHeader";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -30,7 +33,7 @@ import { adminStyles } from "../../styles/adminStyles";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";
 
-// Nuovo componente per la timeline stilistica
+// ... (Il componente TimelineItem rimane invariato)
 const TimelineItem: React.FC<{
   item: DocumentData;
   isLast: boolean;
@@ -93,7 +96,7 @@ const TimelineItem: React.FC<{
           <View
             style={[
               styles.progressBarContainer,
-              { marginHorizontal: 0, marginTop: 8 },
+              { marginLeft: 0, marginTop: 8 },
             ]}
           >
             <View style={[styles.progressBar, { width: `${progress}%` }]} />
@@ -113,16 +116,24 @@ const AdminDashboardScreen = () => {
   const modal = useContext(ModalContext);
 
   const [loading, setLoading] = useState(true);
-  const [eventData, setEventData] = useState<DocumentData | null>(null); // Stato per i dati dell'evento
+  const [eventData, setEventData] = useState<DocumentData | null>(null);
   const [teams, setTeams] = useState<DocumentData[]>([]);
   const [riddles, setRiddles] = useState<DocumentData[]>([]);
-
   const [isGameModalVisible, setGameModalVisible] = useState(false);
   const [currentGame, setCurrentGame] = useState<"Gioco 1" | "Gioco 2" | null>(
     null
   );
   const [rankedTeams, setRankedTeams] = useState<DocumentData[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // --- Nuovi stati per il reset degli utenti ---
+  const [resetDate, setResetDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0); // Inizia dalla mezzanotte di oggi
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (!authContext?.currentEventId) {
@@ -137,7 +148,6 @@ const AdminDashboardScreen = () => {
       authContext.currentEventId,
       setRiddles
     );
-    // Aggiungi un listener per i dettagli dell'evento per ottenere i punteggi dinamici
     const unsubEvent = listenEventDetails(
       authContext.currentEventId,
       (data) => {
@@ -167,6 +177,56 @@ const AdminDashboardScreen = () => {
     }));
   }, [teams, riddles]);
 
+  // --- Nuove funzioni per il reset ---
+  const handleResetGameState = () => {
+    Alert.alert(
+      "ATTENZIONE: Azione Irreversibile",
+      `Stai per modificare lo stato di gioco ("isGameStarted") di TUTTI gli utenti registrati a partire dal ${resetDate.toLocaleDateString(
+        "it-IT"
+      )}. Chiedi a German prima di proseguire!`,
+      [
+        { text: "Annulla", style: "cancel" },
+        {
+          text: "TRUE",
+          onPress: () => performReset(true),
+        },
+        {
+          text: "FALSE",
+          style: "destructive",
+          onPress: () => performReset(false),
+        },
+      ]
+    );
+  };
+
+  const performReset = async (isGameStarted: boolean) => {
+    setIsResetting(true);
+    try {
+      await adminResetUsersGameState(resetDate, isGameStarted);
+      modal?.showModal({
+        type: "success",
+        title: "Operazione Completata",
+        message: `Lo stato di gioco degli utenti è stato impostato a: ${isGameStarted}.`,
+      });
+    } catch (error: any) {
+      modal?.showModal({
+        type: "error",
+        title: "Errore",
+        message: error.message,
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setResetDate(selectedDate);
+    }
+  };
+
+  // ... (le altre funzioni come handleStartQuizPhase, handleOpenGameModal etc. rimangono invariate) ...
   const handleStartQuizPhase = () => {
     Alert.alert(
       "Avviare Fase Quiz?",
@@ -218,7 +278,6 @@ const AdminDashboardScreen = () => {
   const handleSaveGameScores = async () => {
     if (!authContext?.currentEventId || !currentGame) return;
 
-    // Seleziona l'array di punteggi corretto in base al gioco corrente
     const pointsArray =
       eventData?.[
         currentGame === "Gioco 1" ? "gioco1Points" : "gioco2Points"
@@ -236,7 +295,7 @@ const AdminDashboardScreen = () => {
     try {
       const assignments = rankedTeams.map((team, index) => ({
         teamId: team.id,
-        points: pointsArray[index] || 0, // Usa l'array dinamico
+        points: pointsArray[index] || 0,
       }));
       await assignPointsInBatch(authContext.currentEventId, assignments);
       modal?.showModal({
@@ -264,7 +323,6 @@ const AdminDashboardScreen = () => {
     );
   }
 
-  // Funzione per renderizzare gli item nel DraggableFlatList
   const renderRankedTeamItem = ({
     item,
     drag,
@@ -309,7 +367,6 @@ const AdminDashboardScreen = () => {
   return (
     <View style={styles.standardScreenContainer}>
       <AdminHeader title="Dashboard Evento" />
-
       <ScrollView contentContainerStyle={adminStyles.adminListContainer}>
         <Text style={adminStyles.adminSectionTitle}>Controlli Evento</Text>
         <View style={adminStyles.adminListItem}>
@@ -330,20 +387,60 @@ const AdminDashboardScreen = () => {
             onPress={() => handleOpenGameModal("Gioco 2")}
           />
         </View>
-        {/* <View style={adminStyles.adminListItem}>
-          <Text style={adminStyles.adminListItemTitle}>
-            Popola Punti Giochi
-          </Text>
+        <View style={adminStyles.adminListItem}>
+          <Text style={adminStyles.adminListItemTitle}>Punti Gioco 2</Text>
           <PrimaryButton
-            title="ESEGUI"
+            title="POPOLAA"
             onPress={() =>
-              populateQuizPoints(
-                authContext?.currentEventId || "",
-                "xFdqIIoGHFwyQkiN7YOM"
+              populateMultipleChoiceQuiz(
+                authContext?.currentEventId,
+                "0Vff6VScDHxwK5Qxj51v"
               )
             }
           />
-        </View> */}
+        </View>
+
+        <View
+          style={[
+            adminStyles.adminListItem,
+            {
+              borderColor: theme.colors.error,
+              borderWidth: 1,
+              marginTop: theme.spacing.md,
+            },
+          ]}
+        >
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={adminStyles.adminListItemTitle}>
+              Reset Gioco Utenti
+            </Text>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <Text
+                style={[
+                  adminStyles.adminListItemSubtitle,
+                  { textDecorationLine: "underline" },
+                ]}
+              >
+                A partire dal: {resetDate.toLocaleDateString("it-IT")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <PrimaryButton
+            title="ESEGUI"
+            onPress={handleResetGameState}
+            loading={isResetting}
+          />
+        </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={resetDate}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            themeVariant="dark"
+          />
+        )}
 
         <Text style={adminStyles.adminSectionTitle}>Timeline Evento</Text>
         {timelineData.map((item, index) => (
@@ -382,8 +479,8 @@ const AdminDashboardScreen = () => {
             renderItem={renderRankedTeamItem}
             containerStyle={{ flex: 1 }}
             contentContainerStyle={{
-              paddingBottom: 120,
               paddingTop: theme.spacing.md,
+              paddingBottom: 120,
             }}
           />
           <View

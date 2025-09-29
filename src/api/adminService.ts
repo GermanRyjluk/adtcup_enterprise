@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -13,6 +12,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   Timestamp,
   Unsubscribe,
   updateDoc,
@@ -86,7 +86,7 @@ export const listenToRiddles = (
 };
 
 /**
- * Crea un nuovo team in un evento.
+ * Crea un nuovo team in un evento con un ID documento personalizzato.
  * @param eventId L'ID dell'evento.
  * @param teamData L'oggetto contenente i dati del nuovo team.
  */
@@ -97,7 +97,17 @@ export const adminCreateTeam = async (
   if (!teamData.name || isNaN(teamData.numericId)) {
     throw new Error("Nome del team e ID Numerico sono obbligatori.");
   }
-  const teamsRef = collection(db, "events", eventId, "teams");
+
+  const teamIdAsString = teamData.numericId.toString();
+  const teamDocRef = doc(db, "events", eventId, "teams", teamIdAsString);
+
+  // Controlliamo se un documento con questo ID esiste già.
+  const docSnap = await getDoc(teamDocRef);
+  if (docSnap.exists()) {
+    throw new Error(
+      `Un team con ID numerico "${teamData.numericId}" esiste già.`
+    );
+  }
 
   // Imposta valori di default se non forniti
   const newTeam = {
@@ -110,9 +120,10 @@ export const adminCreateTeam = async (
     startLocation: teamData.startLocation || new GeoPoint(45.046808, 7.682705),
     isGameFinished: false,
     createdAt: serverTimestamp(),
+    lastScanTime: serverTimestamp(),
   };
 
-  await addDoc(teamsRef, newTeam);
+  await setDoc(teamDocRef, newTeam);
 };
 
 /**
@@ -397,35 +408,62 @@ export const adminChangeTeamRiddle = async (
 };
 
 /**
- * Recupera la classifica per un singolo quiz, ordinata per tempo di scansione.
+ * Recupera la classifica per un singolo quiz, ordinata in base al tipo di quiz.
  * @param eventId L'ID dell'evento corrente.
  * @param quizId L'ID del quiz di cui recuperare la classifica.
- * @returns Una Promise che risolve in un array di documenti della classifica, ordinati dal più veloce al più lento.
+ * @returns Una Promise che risolve in un array di documenti della classifica.
  */
 export const getQuizLeaderboard = async (
   eventId: string,
-  quizId: string // Parametro aggiornato per coerenza
+  quizId: string
 ): Promise<DocumentData[]> => {
   try {
-    // MODIFICA 1: Aggiornato il percorso della collezione
     const leaderboardCollectionRef = collection(
       db,
       "events",
       eventId,
-      "quiz", // "quiz" come da tua struttura
+      "quiz",
       quizId,
-      "leaderboard" // "leaderboard" come da tua struttura
+      "leaderboard"
     );
 
-    // MODIFICA 2: Aggiornato il campo per l'ordinamento
-    const q = query(leaderboardCollectionRef, orderBy("scanTime", "asc"));
+    // Recupera prima i dettagli del quiz per determinarne il tipo
+    const quizDetails = await getQuizDetails(eventId, quizId);
+    let leaderboardData: DocumentData[];
 
-    const querySnapshot = await getDocs(q);
+    // Se è un quiz a tempo, recuperiamo i dati senza ordinamento da Firestore
+    // e li ordiniamo localmente per evitare di dover creare un indice composto.
+    if (quizDetails?.type === "multipleChoice") {
+      const querySnapshot = await getDocs(leaderboardCollectionRef);
+      const data = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        teamId: doc.id,
+        ...doc.data(),
+      }));
 
-    const leaderboardData = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+      // Eseguiamo l'ordinamento qui, in locale
+      data.sort((a, b) => {
+        const correctA = a.correctAnswers || 0;
+        const correctB = b.correctAnswers || 0;
+        if (correctB !== correctA) {
+          return correctB - correctA; // Più risposte corrette vengono prima
+        }
+        const durationA = a.durationSeconds || 0;
+        const durationB = b.durationSeconds || 0;
+        return durationA - durationB; // Meno tempo è meglio
+      });
+      leaderboardData = data;
+    } else {
+      // Per gli altri tipi di quiz (location, riddle), l'ordinamento per 'scanTime'
+      // richiede un indice semplice che di solito è automatico.
+      const q = query(leaderboardCollectionRef, orderBy("scanTime", "asc"));
+      const querySnapshot = await getDocs(q);
+      leaderboardData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        teamId: doc.id,
+        ...doc.data(),
+      }));
+    }
 
     return leaderboardData;
   } catch (error) {
@@ -581,8 +619,40 @@ export const adminStartQuizPhaseForAllTeams = async (
     batch.update(teamDoc.ref, {
       currentRiddleIndex: newRiddleIndex,
       currentRiddleNumber: newRiddleNumber,
+      lastScanTime: serverTimestamp(),
     });
   });
 
+  await batch.commit();
+};
+
+/**
+ * Resetta lo stato di gioco per tutti gli utenti registrati dopo una certa data.
+ * @param date La data di inizio da cui filtrare gli utenti.
+ * @param isGameStarted Il nuovo valore per il campo 'isGameStarted'.
+ */
+export const adminResetUsersGameState = async (
+  date: Date,
+  isGameStarted: boolean
+): Promise<void> => {
+  const usersRef = collection(db, "users");
+  const startDate = Timestamp.fromDate(date);
+
+  // Query per trovare tutti gli utenti creati da 'startDate' in poi
+  const q = query(usersRef, where("createdAt", ">=", startDate));
+
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    throw new Error("Nessun utente trovato dopo la data specificata.");
+  }
+
+  const batch = writeBatch(db);
+  querySnapshot.forEach((userDoc) => {
+    // Per ogni utente trovato, aggiungi un'operazione di aggiornamento al batch
+    batch.update(userDoc.ref, { isGameStarted: isGameStarted });
+  });
+
+  // Esegui tutte le modifiche in un'unica operazione atomica
   await batch.commit();
 };

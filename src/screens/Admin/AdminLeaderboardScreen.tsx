@@ -24,7 +24,7 @@ import { AdminHeader } from "../../components/AdminHeader";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ModalContext } from "../../contexts/ModalContext";
-import { AdminTabScreenProps } from "../../navigation/types";
+import { AdminTabScreenProps } from "../../navigaion/types";
 import { adminStyles } from "../../styles/adminStyles";
 import { styles } from "../../styles/styles";
 import { theme } from "../../theme/theme";

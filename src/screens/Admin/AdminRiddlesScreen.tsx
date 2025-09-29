@@ -71,6 +71,7 @@ const AdminRiddlesScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate("QuizLeaderboard", {
       riddleId: riddle.id,
       riddleTitle: riddleTitle,
+      quizType: riddle.type,
     });
   };
 

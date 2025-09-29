@@ -43,6 +43,7 @@ const QuizLeaderboardScreen: React.FC<QuizLeaderboardScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [isAssigning, setIsAssigning] = useState(false); // Stato per il caricamento del bottone
   const [teamsWithPoints, setTeamsWithPoints] = useState<TeamWithPoints[]>([]);
+  const [quizDetails, setQuizDetails] = useState<DocumentData | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,10 +52,11 @@ const QuizLeaderboardScreen: React.FC<QuizLeaderboardScreenProps> = ({
         setLoading(true); // Inizia il caricamento
 
         // 1. Recupera la classifica e i dettagli del quiz
-        const [leaderboardData, quizDetails] = await Promise.all([
+        const [leaderboardData, details] = await Promise.all([
           getQuizLeaderboard(authContext.currentEventId, riddleId),
           getQuizDetails(authContext.currentEventId, riddleId),
         ]);
+        setQuizDetails(details);
 
         if (leaderboardData.length === 0) {
           setTeamsWithPoints([]);
@@ -70,7 +72,7 @@ const QuizLeaderboardScreen: React.FC<QuizLeaderboardScreenProps> = ({
           teamIds
         );
 
-        const pointsSystem: number[] = quizDetails?.points || [];
+        const pointsSystem: number[] = details?.points || [];
 
         // 4. Combina tutti i dati per creare lo stato finale
         const combinedData = leaderboardData.map((leaderboardEntry, index) => {
@@ -148,33 +150,60 @@ const QuizLeaderboardScreen: React.FC<QuizLeaderboardScreenProps> = ({
   }: {
     item: TeamWithPoints;
     index: number;
-  }) => (
-    <View
-      style={[
-        adminStyles.adminListItem,
-        { marginHorizontal: theme.spacing.lg },
-      ]}
-    >
-      <Text style={adminStyles.leaderboardPosition}>{index + 1}</Text>
-      <View style={adminStyles.adminListItemContent}>
-        <Text style={adminStyles.adminListItemTitle}>{item.teamName}</Text>
-        <Text style={[adminStyles.adminListItemSubtitle, { marginBottom: 5 }]}>
-          Tempo: {item.durationSeconds}s
-        </Text>
-        <Text style={adminStyles.adminListItemSubtitle}>
-          Punti attuali: {item.currentScore}
-        </Text>
+  }) => {
+    const totalQuestions = quizDetails?.questions?.length || 0;
+    return (
+      <View
+        style={[
+          adminStyles.adminListItem,
+          { marginHorizontal: theme.spacing.lg },
+        ]}
+      >
+        <Text style={adminStyles.leaderboardPosition}>{index + 1}</Text>
+        <View style={adminStyles.adminListItemContent}>
+          <Text style={adminStyles.adminListItemTitle}>{item.teamName}</Text>
+          {quizDetails?.type === "multipleChoice" ? (
+            <Text
+              style={[adminStyles.adminListItemSubtitle, { marginBottom: 5 }]}
+            >
+              {`Risposte: ${item.correctAnswers || 0}/${totalQuestions}`}
+            </Text>
+          ) : null}
+
+          <Text
+            style={[adminStyles.adminListItemSubtitle, { marginBottom: 5 }]}
+          >
+            {`Tempo: ${formatDuration(item.durationSeconds)}`}
+          </Text>
+          <Text style={adminStyles.adminListItemSubtitle}>
+            Punti attuali: {item.currentScore}
+          </Text>
+        </View>
+        <View style={{ alignItems: "center" }}>
+          <TextInput
+            style={adminStyles.pointsInput}
+            value={`+${item.pointsToAdd}`}
+            onChangeText={(text) => handlePointsChange(text, item.teamId)}
+            keyboardType="numeric"
+          />
+        </View>
       </View>
-      <View style={{ alignItems: "center" }}>
-        <TextInput
-          style={adminStyles.pointsInput}
-          value={`+${item.pointsToAdd}`}
-          onChangeText={(text) => handlePointsChange(text, item.teamId)}
-          keyboardType="numeric"
-        />
-      </View>
-    </View>
-  );
+    );
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    if (isNaN(totalSeconds) || totalSeconds < 0) return "N/D";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+
+    return parts.join(" ");
+  };
 
   if (loading) {
     return (
